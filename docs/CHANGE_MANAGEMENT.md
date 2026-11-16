@@ -20,7 +20,7 @@
 | 변경 목적 | 설계 문서 12장 개발 순서의 5단계. 설계 3.2 오른쪽 Properties(Node Name, Parameters, Input, Output, Test Node)와 4.2 "노드 속성 변경, 조건 및 분기 설정" 구현 |
 | 변경 파일 | 신규: `src/editor/nodeFields.js`, `src/editor/PropertiesPanel.jsx` / 수정: `src/editor/nodeCatalog.js`(출구를 노드 값에 따라 계산, 기본 설정값), `src/editor/WorkflowNode.jsx`(요약·"설정 필요" 표시, 출구 변경 알림), `src/pages/WorkflowEditor.jsx`(패널 연결, 실행 취소 묶기, Switch 선 정리, 미니맵 축소), `package.json`, `package-lock.json`, `README.md`, `docs/ARCHITECTURE.md`, `docs/DATABASE_DESIGN.md`, `docs/FLOWBUILDER_DESIGN.md`(v1.4), `docs/CHANGE_MANAGEMENT.md` |
 | 영향 범위 | Workflow Editor 화면만. 저장 데이터에 `data.params` 추가(이전 임시 저장은 기본값으로 채워 읽음). 서버 API·DB 변경 없음 |
-| 배포 상태 | 배포 전 |
+| 배포 상태 | 운영 배포 (2026-11-16) · https://flowbuilder-roan.vercel.app/editor · 커밋 b5bfa47 |
 | 롤백 방법 | Vercel에서 이전 배포(커밋 613c831)로 되돌리기, 또는 `git revert`. 이전 버전은 `params`를 무시하므로 임시 저장 값과 충돌 없음 |
 
 설계와 달라진 점 (설계 문서 v1.4에 반영함)
@@ -48,6 +48,8 @@
 | 수행함 | 새로고침 후 노드 유지, 새로 연 화면 콘솔 오류 0건 | 통과 |
 | 수행 안 함 | Schedule·Webhook·GAS·GitHub Actions·Transform·Delay 패널을 하나씩 직접 입력 | 미확인 (같은 입력칸 생성 코드를 씀) |
 | 수행 안 함 | 실제 휴대폰에서 입력(키보드가 올라올 때 창 위치) | 미확인 |
+| 수행함 | 배포 주소에 새 편집기 파일(속성 패널 포함)이 올라간 것, `/api/health` db ok | 통과 |
+| 수행 안 함 | 로그인한 배포 주소에서 속성 패널 조작 | 미확인 (크롬 창이 최소화돼 화면 확인 불가) |
 
 미완료 항목
 
