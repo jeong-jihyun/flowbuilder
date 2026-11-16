@@ -63,16 +63,26 @@ function TokenBlock() {
   );
 }
 
+// text 가 빈 단계는 앞 단계에 붙은 복사칸으로 합친다(번호가 헛도는 것을 막는다)
+function mergeSteps(steps) {
+  const out = [];
+  for (const st of steps) {
+    if (!st.text && out.length) out[out.length - 1].copies.push(st.copy);
+    else out.push({ ...st, copies: st.copy ? [st.copy] : [] });
+  }
+  return out;
+}
+
 function Recipes({ list }) {
   return list.map((r) => (
     <Box key={r.title} sx={{ mb: 3, p: 1.5, border: 1, borderColor: 'primary.light', borderRadius: 2 }}>
       <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{r.title}</Typography>
       {r.note && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{r.note}</Typography>}
       <Stack component="ol" sx={{ m: 0, pl: 2.5, gap: 1.25 }}>
-        {r.steps.map((st, i) => (
-          <Typography component="li" variant="body2" key={i} sx={{ display: 'list-item' }}>
+        {mergeSteps(r.steps).map((st, i) => (
+          <Typography component="li" variant="body2" key={i} sx={{ display: 'list-item', whiteSpace: 'pre-line' }}>
             {st.text}
-            {st.copy && <CopyBlock {...st.copy} />}
+            {st.copies.map((c, j) => <CopyBlock key={j} {...c} />)}
             {st.token && <TokenBlock />}
           </Typography>
         ))}

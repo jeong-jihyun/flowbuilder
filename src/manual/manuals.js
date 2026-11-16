@@ -161,6 +161,88 @@ function json(obj) {
         '인증정보가 저장되지 않으면 설정 화면에서 “암호화 키”가 준비됐는지 보세요.',
       ],
     },
+    {
+      title: '레시피 3 · 깃허브 액션 연결하기',
+      note: '내 저장소의 “GitHub Actions 워크플로우”를 FlowBuilder에서 실행하고, 끝날 때까지 기다립니다. 15초가 넘는 긴 일(빌드·배포·크롤링)에 알맞습니다. 깃허브 쪽 3단계(A), FlowBuilder 쪽 3단계(B)입니다.',
+      steps: [
+        { text: 'A-1. 깃허브에서 내 저장소를 열고 “Add file → Create new file”을 누릅니다. 파일 이름 칸에 아래 경로를 붙여 넣고, 큰 칸에는 그 아래 내용을 붙여 넣은 뒤 “Commit changes”로 저장합니다. (main 브랜치에 있어야 합니다)', copy: { label: '파일 이름(경로)', text: '.github/workflows/example-dispatch.yml' } },
+        { text: '', copy: { label: '파일 내용', code: true, text: 'name: example-dispatch\non:\n  workflow_dispatch:\n    inputs:\n      name:\n        description: 인사할 이름\n        required: false\n        default: world\njobs:\n  hello:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo "안녕하세요, ${{ inputs.name }}"' } },
+        { text: 'A-2. 토큰 만들기: 깃허브 오른쪽 위 내 사진 → Settings → 맨 아래 Developer settings → Personal access tokens → Fine-grained tokens → Generate new token. ① 이름 아무거나 ② Repository access: “Only select repositories”에서 그 저장소만 선택 ③ Repository permissions에서 “Actions”를 “Read and write”로 → Generate token. 나온 토큰(github_pat_… 로 시작)은 한 번만 보이니 바로 복사해 둡니다.' },
+        { text: 'B-1. FlowBuilder “인증정보” → “등록” → 종류 “GitHub 토큰”, 이름은 아래, 비밀값에 A-2의 토큰을 붙여 넣고 저장합니다.', copy: { label: '인증정보 이름', text: '내 깃허브 토큰' } },
+        { text: 'B-2. 편집기에서 새 워크플로우(수동 실행 시작)를 만들고 “깃허브 액션” 노드를 추가해 잇습니다. 노드 설정: 저장소는 내 아이디/저장소 이름으로 바꿔 붙여 넣고, GitHub 토큰은 B-1에서 만든 것을 고릅니다.', copy: { label: '저장소 (owner/repo)', text: '내아이디/내저장소' } },
+        { text: '같은 노드의 나머지 칸입니다. 워크플로우 파일 칸:', copy: { label: '워크플로우 파일', text: 'example-dispatch.yml' } },
+        { text: '브랜치 칸은 main 그대로 두고, “입력값(JSON)” 칸에 붙여 넣습니다. (깃허브 쪽 inputs 이름과 같아야 합니다)', copy: { label: '입력값(JSON)', text: '{ "name": "{{input.name}}" }' } },
+        { text: 'B-3. “데이터 변환”을 뒤에 잇고 결과 모양에 붙여 넣습니다. 저장 → 실행(입력값 {"name":"홍길동"}). 깃허브 쪽 실행이 끝날 때까지 기다린 뒤 초록 체크와 실행 주소(htmlUrl)가 나오면 성공입니다.', copy: { label: '결과 모양(JSON)', text: '{\n  "message": "깃허브 실행 {{input.conclusion}}: {{input.htmlUrl}}"\n}' } },
+      ],
+      fixes: [
+        '“GitHub 토큰을 찾을 수 없습니다” → 노드의 GitHub 토큰 칸에서 인증정보를 골랐는지 확인하세요.',
+        '404/403 오류 → 저장소 이름 철자, 토큰의 저장소 선택·Actions 권한(Read and write), 파일이 main 브랜치에 있는지 확인하세요.',
+        '깃허브 쪽 실행이 실패하면 이 노드도 “실패”가 되고 흐름이 거기서 멈춥니다. 실행 기록에서 실행 주소를 열어 원인을 보세요.',
+        '입력값은 깃허브 파일의 inputs 이름(name)과 같아야 합니다. 없는 이름을 보내면 깃허브가 거절합니다.',
+      ],
+    },
+    {
+      title: '레시피 4 · 조건 분기: 예/아니오로 나누기',
+      note: '“금액이 10만원 이상이면 A, 아니면 B”처럼 한 갈래를 두 갈래로 나눕니다. 외부 서비스 없이 연습할 수 있습니다.',
+      steps: [
+        { text: '새 워크플로우(수동 실행 시작)를 만들고, 왼쪽 목록의 “조건 분기”를 추가해 수동 실행과 잇습니다.' },
+        { text: '조건 분기 노드를 누르고 설정칸을 채웁니다. “비교할 값” 칸:', copy: { label: '비교할 값', text: '{{input.amount}}' } },
+        { text: '“조건”은 목록에서 “크다 (>)”를 고르고, “기준 값” 칸에 붙여 넣습니다.', copy: { label: '기준 값', text: '100000' } },
+        { text: '조건 분기 노드 아래에는 동그라미가 두 개 있습니다. 왼쪽 “예” 동그라미에서 끌어 “데이터 변환” 노드(새로 추가)에 잇고, 오른쪽 “아니오” 동그라미에서 끌어 또 다른 “데이터 변환” 노드에 잇습니다.' },
+        { text: '“예” 쪽 데이터 변환의 결과 모양:', copy: { label: '예 쪽 결과 모양', text: '{\n  "message": "큰 주문입니다: {{input.amount}}원"\n}' } },
+        { text: '“아니오” 쪽 데이터 변환의 결과 모양:', copy: { label: '아니오 쪽 결과 모양', text: '{\n  "message": "일반 주문입니다: {{input.amount}}원"\n}' } },
+        { text: '저장 → “검증”(양쪽 갈래가 이어졌는지 확인) → 실행. 입력값 두 가지로 각각 실행해 보세요. 고르지 않은 갈래는 실행 결과에 “건너뜀”으로 표시됩니다.', copy: { label: '실행 입력값 ① (예 쪽으로 감)', text: '{"amount": 250000}' } },
+        { text: '', copy: { label: '실행 입력값 ② (아니오 쪽으로 감)', text: '{"amount": 30000}' } },
+      ],
+      fixes: [
+        '갈래 하나를 안 이으면 “검증”에서 “갈래가 비어 있습니다” 알림이 뜹니다. 그 경우 흐름은 그냥 거기서 끝납니다.',
+        '글자를 비교할 때는 “같다 (=)”와 기준 값에 글자를 씁니다. 예: 비교할 값 {{input.status}}, 기준 값 done',
+        '조건 분기는 값을 바꾸지 않고 그대로 다음 노드에 넘깁니다. 그래서 갈래 뒤에서도 {{input.amount}}를 쓸 수 있습니다.',
+      ],
+    },
+    {
+      title: '레시피 5 · 다중 분기: 세 갈래 이상으로 나누기',
+      note: '값이 무엇이냐에 따라 여러 갈래로 보냅니다. 어느 것에도 안 맞으면 “기본” 갈래로 갑니다.',
+      steps: [
+        { text: '“다중 분기” 노드를 추가해 시작 노드와 잇습니다.' },
+        { text: '“나눌 값” 칸:', copy: { label: '나눌 값', text: '{{input.type}}' } },
+        { text: '“갈래”에서 갈래를 3개로 늘리고, 이름과 일치 값을 아래처럼 적습니다. (이름은 화면에 보이는 글자, 일치 값은 비교하는 값입니다)\n갈래1 이름 “주문” / 일치 값 order\n갈래2 이름 “문의” / 일치 값 inquiry\n갈래3 이름 “환불” / 일치 값 refund' },
+        { text: '노드 아래에 갈래 수 + “기본” 동그라미가 생깁니다. 동그라미마다 끌어서 각각 다른 데이터 변환 노드에 잇습니다. 결과 모양 예시(주문 쪽):', copy: { label: '주문 쪽 결과 모양', text: '{\n  "message": "주문 접수: {{input.id}}"\n}' } },
+        { text: '저장 → 실행. 입력값을 바꿔 가며 각각 다른 갈래로 가는지 확인하세요. 아래 세 번째는 어디에도 안 맞아 “기본”으로 갑니다.', copy: { label: '실행 입력값 ① (주문 갈래)', text: '{"type": "order", "id": "A-100"}' } },
+        { text: '', copy: { label: '실행 입력값 ② (환불 갈래)', text: '{"type": "refund", "id": "A-101"}' } },
+        { text: '', copy: { label: '실행 입력값 ③ (기본 갈래)', text: '{"type": "etc", "id": "A-102"}' } },
+      ],
+      fixes: ['한 갈래의 일치 값을 비워 두면 안 맞는 경우가 생길 수 있으니 모두 채워 주세요.', '갈래는 최대 10개까지 만들 수 있습니다.'],
+    },
+    {
+      title: '레시피 6 · 구글 앱스 스크립트 결과로 분기하기',
+      note: '레시피 2의 GAS 연결을 끝낸 뒤 이어서 하세요. GAS가 계산한 값에 따라 흐름을 나눕니다.',
+      steps: [
+        { text: '6-1. Apps Script 코드의 FUNCTIONS 안, main 함수 뒤에 아래 함수를 추가하고 저장한 뒤, “배포 → 배포 관리 → 연필 → 새 버전 → 배포”를 다시 합니다.', copy: { label: 'FUNCTIONS 안에 추가할 함수', code: true, text: '  check: function (payload) {\n    const amount = Number(payload.amount) || 0;\n    return { amount: amount, level: amount >= 100000 ? "big" : "normal" };\n  },' } },
+        { text: '6-2. 레시피 2의 GAS 노드에서 “실행할 함수 이름”을 check로 바꾸고, “보낼 값(JSON)”을 아래로 바꿉니다.', copy: { label: '보낼 값(JSON)', text: '{ "amount": "{{input.amount}}" }' } },
+        { text: '6-3. GAS 노드 뒤에 “조건 분기”를 잇고, “비교할 값”은 아래, 조건은 “같다 (=)”, 기준 값은 big으로 합니다. (GAS가 돌려준 값은 {{input.level}} 처럼 바로 읽습니다)', copy: { label: '비교할 값', text: '{{input.level}}' } },
+        { text: '6-4. “예”와 “아니오” 출구를 각각 데이터 변환 노드에 잇고(레시피 4와 같음), 저장 → 실행. 입력값:', copy: { label: '실행 입력값', text: '{"amount": 250000}' } },
+      ],
+      fixes: [
+        '깃허브 액션·GAS·HTTP 노드가 실패하면(인증 실패, 서버 오류 등) 흐름이 그 노드에서 멈춥니다. “실패했을 때 다른 갈래로 가기”는 지원하지 않고, 실행 기록에서 원인을 고친 뒤 “다시 실행”합니다.',
+        '그래서 분기는 “성공한 결과의 값”으로 나눕니다. 위 예처럼 GAS 함수가 level 같은 값을 돌려주게 만드세요.',
+      ],
+    },
+    {
+      title: '레시피 7 · 자동으로 시작하기 (예약 실행·웹훅)',
+      note: '버튼을 누르는 대신 정해진 시각이나 외부 요청이 오면 자동으로 시작합니다. 시작 노드만 바꾸면 됩니다.',
+      steps: [
+        { text: '예약 실행: 시작 노드로 “예약 실행”을 추가하고 뒤에 나머지 노드를 잇습니다. 반복은 “매일”, 시각은 09:00처럼 고릅니다(한국 시간). 저장한 뒤 위쪽 “자동 실행” 스위치를 켭니다. 서버가 5분마다 확인하므로 몇 분 늦을 수 있습니다.' },
+        { text: '웹훅: 시작 노드로 “웹훅”을 추가하고 뒤에 노드를 잇습니다. 저장한 뒤 웹훅 노드의 설정 아래 “주소 만들기” 버튼을 눌러 주소를 만들고 복사 아이콘으로 복사합니다. “자동 실행” 스위치를 켭니다.' },
+        { text: '웹훅 받은 값은 {{input.body.이름}}으로 씁니다. 예를 들어 레시피 4의 비교할 값을 아래로 바꿉니다.', copy: { label: '웹훅용 비교할 값', text: '{{input.body.amount}}' } },
+        { text: '시험(Windows PowerShell): 주소 부분을 복사한 웹훅 주소로 바꿔 붙여 넣어 실행하면, 실행 기록에 “웹훅”으로 시작한 기록이 생깁니다.', copy: { label: 'PowerShell 시험 명령', code: true, text: 'Invoke-RestMethod -Method Post -Uri "여기에_복사한_웹훅_주소" -ContentType "application/json" -Body \'{"amount": 250000}\'' } },
+      ],
+      fixes: [
+        '“자동 실행” 스위치가 꺼져 있으면 예약·웹훅은 동작하지 않습니다.',
+        '예약 실행은 GitHub Actions 크론(5분 간격)에 기대므로 설정의 “예약 실행 비밀값”이 준비되어야 합니다. 지금 운영 서버에는 아직 설정 전입니다.',
+        '웹훅 주소는 비밀번호와 같습니다. 남에게 공유하지 마세요.',
+      ],
+    },
   ],
 };
 
