@@ -1,0 +1,14 @@
+{
+  "name": "GAS 예제: 인사 보내기",
+  "description": "Manual로 시작 → Apps Script의 main 함수 실행 → 결과를 문장으로 변환. docs/GAS_TEMPLATE.md의 견본 코드와 짝입니다.",
+  "runInput": { "name": "정지현" },
+  "nodes": [
+    { "id": "trigger_1", "type": "trigger", "position": { "x": 150, "y": 0 }, "data": { "kind": "manual", "label": "Manual" } },
+    { "id": "action_1", "type": "action", "position": { "x": 150, "y": 130 }, "data": { "kind": "gas", "label": "GAS 인사", "params": { "url": "https://script.google.com/macros/s/여기에_웹앱_ID/exec", "functionName": "main", "payload": "{ \"name\": \"{{input.name}}\" }", "credentialId": "" } } },
+    { "id": "action_2", "type": "action", "position": { "x": 150, "y": 260 }, "data": { "kind": "transform", "label": "결과 문장", "params": { "mapping": "{\n  \"message\": \"{{input.hello}} 님, GAS가 {{input.time}} 에 응답했습니다\"\n}" } } }
+  ],
+  "edges": [
+    { "id": "edge_1", "source": "trigger_1", "target": "action_1" },
+    { "id": "edge_2", "source": "action_1", "target": "action_2" }
+  ]
+}
