@@ -20,8 +20,8 @@
 | 변경 목적 | 설계 문서 12장 개발 순서의 1단계(React + Vite 초기 구성) |
 | 변경 파일 | 신규: `package.json`, `vite.config.js`, `index.html`, `vercel.json`, `.gitignore`, `.env.example`, `api/health.js`, `src/main.jsx`, `src/App.jsx`, `src/theme.js`, `src/menu.js`, `src/layout/AppShell.jsx`, `src/pages/Dashboard.jsx`, `src/pages/WorkflowEditor.jsx`, `src/pages/ComingSoon.jsx`, `README.md`, `docs/*` |
 | 영향 범위 | 신규 프로젝트라 기존 기능 영향 없음 |
-| 배포 상태 | 미배포 |
-| 롤백 방법 | 첫 커밋이므로 해당 없음 |
+| 배포 상태 | 운영 배포 완료 (Vercel Hobby) · https://flowbuilder-roan.vercel.app · 커밋 e74ff99 |
+| 롤백 방법 | 첫 배포라 되돌릴 이전 버전 없음. 이후에는 Vercel에서 이전 배포로 되돌리기 |
 | 비고 | `docs/FLOWBUILDER_DESIGN.md`는 원본에서 외부 참고 이미지 링크 1개만 뺐습니다 (남의 디자인 시안, 링크 만료 가능) |
 
 검증 결과
@@ -35,7 +35,9 @@
 | 수행함 | 모바일 폭(390px) 화면 표시, 메뉴 Drawer 열림 | 통과 |
 | 수행함 | `api/health.js` 함수 직접 호출 (GET 200, POST 405) | 통과 |
 | 수행 안 함 | 실제 휴대폰에서 노드 끌기·선 잇기(터치) | 미확인 |
-| 수행 안 함 | Vercel 배포 후 `/api/health` 호출, 새로고침 시 화면 유지 | 미확인 (미배포) |
+| 수행함 | 배포 주소에서 `/api/health` 응답 200 | 통과 |
+| 수행함 | 배포 주소에서 `/editor` 직접 열기 시 화면 파일 응답 200 | 통과 |
+| 수행 안 함 | 배포 주소를 실제 브라우저로 열어 화면 눈으로 확인 | 미확인 |
 
 미완료 항목
 
