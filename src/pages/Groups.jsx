@@ -120,7 +120,7 @@ export default function Groups() {
   }
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 800 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
           My Groups

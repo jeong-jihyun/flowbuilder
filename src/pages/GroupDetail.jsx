@@ -239,7 +239,7 @@ export default function GroupDetail() {
   const canTouch = (m) => canManage && roles.includes(m.role);
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 800 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       {back}
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>

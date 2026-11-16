@@ -1,18 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+import { AllCommunityModule, themeQuartz } from 'ag-grid-community';
+import { AgGridProvider, AgGridReact } from 'ag-grid-react';
 import {
   Alert,
   Box,
   Chip,
   Link,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import ServerAuthCheck from '../components/ServerAuthCheck.jsx';
 import { useApi } from '../lib/api.js';
@@ -20,6 +17,31 @@ import { AUTH_ENABLED } from '../lib/authConfig.js';
 import { formatDate } from '../lib/format.js';
 
 const RECENT = 5;
+const GRID_MODULES = [AllCommunityModule];
+const GRID_THEME = themeQuartz.withParams({
+  accentColor: '#2864FF',
+  backgroundColor: '#FFFFFF',
+  borderColor: '#E3EAF3',
+  borderRadius: 6,
+  browserColorScheme: 'light',
+  fontFamily: 'Pretendard, "Noto Sans KR", sans-serif',
+  fontSize: 13,
+  foregroundColor: '#0B2045',
+  headerBackgroundColor: '#F7F9FC',
+  headerFontFamily: 'Pretendard, "Noto Sans KR", sans-serif',
+  headerFontSize: 11,
+  headerFontWeight: 700,
+  headerTextColor: '#64748B',
+  headerVerticalPaddingScale: 1.25,
+  rowHoverColor: '#F4F7FB',
+  rowVerticalPaddingScale: 1.2,
+  spacing: 8,
+  subtleTextColor: '#64748B',
+  textColor: '#0B2045',
+  wrapperBackgroundColor: '#FFFFFF',
+  wrapperBorderRadius: 16,
+});
+const DEFAULT_COL_DEF = { flex: 1, minWidth: 100, sortable: true, resizable: false };
 
 function Stat({ label, value, note }) {
   return (
@@ -46,6 +68,7 @@ export default function Dashboard() {
   const [failed, setFailed] = useState(false);
   // 실행 개수 (8단계)
   const [runCounts, setRunCounts] = useState(null);
+  const compact = useMediaQuery('(max-width:599.95px)');
 
   useEffect(() => {
     if (!AUTH_ENABLED) return;
@@ -59,9 +82,35 @@ export default function Dashboard() {
   }, [api]);
 
   const count = workflows ? workflows.length : '–';
+  const recentWorkflows = useMemo(() => (workflows || []).slice(0, RECENT), [workflows]);
+  const columnDefs = useMemo(() => [
+    {
+      field: 'name',
+      headerName: 'Workflow Name',
+      minWidth: 180,
+      cellRenderer: ({ data }) => (
+        <Link component={RouterLink} to={`/workflows/${data.id}`} underline="hover" sx={{ fontWeight: 650 }}>
+          {data.name}
+        </Link>
+      ),
+    },
+    { field: 'groupName', headerName: 'Group', hide: compact, minWidth: 120 },
+    {
+      field: 'status',
+      headerName: 'Status',
+      minWidth: 105,
+      cellRenderer: ({ value }) => <Chip size="small" label={value === 'draft' ? 'Draft' : value} />,
+    },
+    {
+      field: 'updatedAt',
+      headerName: 'Updated',
+      minWidth: 125,
+      valueFormatter: ({ value }) => formatDate(value),
+    },
+  ], [compact]);
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1100 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
         Dashboard
       </Typography>
@@ -89,34 +138,21 @@ export default function Dashboard() {
           </Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Workflow Name</TableCell>
-                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Group</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Updated</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {(workflows || []).slice(0, RECENT).map((w) => (
-                <TableRow key={w.id} hover>
-                  <TableCell>
-                    <Link component={RouterLink} to={`/workflows/${w.id}`} underline="hover">
-                      {w.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>{w.groupName}</TableCell>
-                  <TableCell>
-                    <Chip size="small" label={w.status === 'draft' ? 'Draft' : w.status} />
-                  </TableCell>
-                  <TableCell>{formatDate(w.updatedAt)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <Paper variant="outlined" sx={{ borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(11,32,69,.06)' }}>
+          <AgGridProvider modules={GRID_MODULES}>
+            <AgGridReact
+              rowData={recentWorkflows}
+              columnDefs={columnDefs}
+              defaultColDef={DEFAULT_COL_DEF}
+              theme={GRID_THEME}
+              domLayout="autoHeight"
+              headerHeight={44}
+              rowHeight={52}
+              getRowId={({ data }) => data.id}
+              suppressCellFocus
+            />
+          </AgGridProvider>
+        </Paper>
       )}
     </Box>
   );
