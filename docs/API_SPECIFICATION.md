@@ -261,6 +261,7 @@ Workflow·그룹 API 변경: Workflow를 지우면 그 실행 기록도, 그룹�
 | --- | --- | --- | --- | --- |
 | GET | `/api/credentials[?groupId=]` | 그룹 멤버 | - | 200 `{ credentials: [Credential] }` (비밀값 없음) |
 | POST | `/api/credentials` | 그룹의 Owner·Admin | `{ groupId, name, type, secret, headerName? }` | 201 `{ credential }` |
+| PUT | `/api/credentials/:id` | 그룹의 Owner·Admin | `{ name?, secret?, headerName? }` (비밀값 미전송 시 유지, 종류 변경 불가) | 200 `{ credential }` |
 | DELETE | `/api/credentials/:id` | 그룹의 Owner·Admin | - | 200 `{}` |
 | POST | `/api/workflows/:id/activate` | Owner·Admin·Editor | `{ active: true/false }` | 200 `{ status: "active" \| "draft" }` |
 | GET | `/api/workflows/:id/webhook?nodeId=` | Owner·Admin·Editor | - | 200 `{ path }` (없으면 `null`) |
