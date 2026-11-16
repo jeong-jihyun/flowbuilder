@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Drawer, Typography, useMediaQuery } from '@mui/material';
+import { Box, Button, Drawer, Typography, useMediaQuery } from '@mui/material';
+import TuneIcon from '@mui/icons-material/Tune';
 import { useTheme } from '@mui/material/styles';
 import {
   addEdge,
@@ -20,15 +21,17 @@ import '../editor/editor.css';
 import WorkflowNode from '../editor/WorkflowNode.jsx';
 import NodePalette, { DRAG_TYPE } from '../editor/NodePalette.jsx';
 import EditorToolbar from '../editor/EditorToolbar.jsx';
+import PropertiesPanel from '../editor/PropertiesPanel.jsx';
 import { useHistory } from '../editor/useHistory.js';
 import { loadDraft, saveDraft } from '../editor/draftStorage.js';
-import { CATEGORIES, createNode, outputLabel } from '../editor/nodeCatalog.js';
+import { CATEGORIES, createNode, outputLabel, outputsOf } from '../editor/nodeCatalog.js';
 
 // Workflow 편집기 (4단계).
 // 중요: 여기는 흐름을 "그리는" 곳이다. 노드를 놓아도 아무것도 실행되지 않는다.
 // 실행은 서버의 실행 엔진(8단계)이 맡는다.
 
 const PALETTE_WIDTH = 240;
+const PROPERTIES_WIDTH = 320;
 
 // 세 분류가 모두 같은 노드 모양을 쓴다. 차이는 data.kind 로 구분한다.
 const NODE_TYPES = { trigger: WorkflowNode, condition: WorkflowNode, action: WorkflowNode };
@@ -40,9 +43,9 @@ const EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, width: 18, hei
 const EXAMPLE = {
   nodes: [
     { id: 'trigger_1', type: 'trigger', position: { x: 150, y: 0 }, data: { kind: 'manual', label: 'Manual' } },
-    { id: 'condition_1', type: 'condition', position: { x: 150, y: 130 }, data: { kind: 'ifElse', label: 'If / Else' } },
-    { id: 'action_1', type: 'action', position: { x: 0, y: 290 }, data: { kind: 'http', label: 'HTTP Request' } },
-    { id: 'action_2', type: 'action', position: { x: 300, y: 290 }, data: { kind: 'gas', label: 'Google Apps Script' } },
+    { id: 'condition_1', type: 'condition', position: { x: 150, y: 130 }, data: { kind: 'ifElse', label: 'If / Else', params: { left: '{{input.status}}', operator: 'equals', right: 'done' } } },
+    { id: 'action_1', type: 'action', position: { x: 0, y: 290 }, data: { kind: 'http', label: 'HTTP Request', params: { method: 'GET', url: 'https://api.example.com/items' } } },
+    { id: 'action_2', type: 'action', position: { x: 300, y: 290 }, data: { kind: 'gas', label: 'Google Apps Script', params: { url: 'https://script.google.com/macros/s/EXAMPLE/exec', functionName: 'main' } } },
   ],
   edges: [
     { id: 'edge_1', source: 'trigger_1', target: 'condition_1' },
@@ -84,6 +87,8 @@ function isTyping(e) {
 function Editor() {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+  // 속성 패널을 옆에 붙일 만큼 넓은 화면 (아니면 아래에서 올라오는 창)
+  const isWide = useMediaQuery(theme.breakpoints.up('lg'));
   const initial = useMemo(() => loadDraft() || EXAMPLE, []);
   const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
@@ -91,6 +96,21 @@ function Editor() {
   const history = useHistory(nodes, edges, setNodes, setEdges);
   const canvasRef = useRef(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
+  // 같은 입력칸에 글자를 이어 치는 동안은 실행 취소 기록을 한 번만 남긴다
+  const editSession = useRef(null);
+  const endEdit = useCallback(() => {
+    editSession.current = null;
+  }, []);
+  const undo = useCallback(() => {
+    endEdit();
+    history.undo();
+  }, [endEdit, history]);
+  const redo = useCallback(() => {
+    endEdit();
+    history.redo();
+  }, [endEdit, history]);
+  const historyControls = { ...history, undo, redo };
 
   // 바뀔 때마다 이 기기에 임시 저장 (0.5초 모아서)
   useEffect(() => {
@@ -120,8 +140,7 @@ function Editor() {
     (connection) => {
       history.record();
       setEdges((es) => {
-        const source = nodes.find((n) => n.id === connection.source);
-        const label = outputLabel(source?.data.kind, connection.sourceHandle);
+        const label = outputLabel(nodes.find((n) => n.id === connection.source), connection.sourceHandle);
         return addEdge({ ...connection, ...(label && { label }) }, es);
       });
     },
@@ -132,8 +151,7 @@ function Editor() {
   const onReconnect = useCallback(
     (oldEdge, connection) => {
       history.record();
-      const source = nodes.find((n) => n.id === connection.source);
-      const label = outputLabel(source?.data.kind, connection.sourceHandle);
+      const label = outputLabel(nodes.find((n) => n.id === connection.source), connection.sourceHandle);
       setEdges((es) =>
         reconnectEdge(oldEdge, connection, es, { shouldReplaceId: false }).map((e) =>
           e.id === oldEdge.id ? { ...e, label } : e
@@ -151,7 +169,39 @@ function Editor() {
     return true;
   }, [history]);
 
+  // 속성 패널에서 값 바꾸기. field 가 바뀌면 실행 취소 기록을 새로 남긴다.
+  const editNode = useCallback(
+    (nodeId, field, patch) => {
+      const key = `${nodeId}:${field}`;
+      if (editSession.current !== key) {
+        history.record();
+        editSession.current = key;
+      }
+      const target = nodes.find((n) => n.id === nodeId);
+      if (!target) return;
+      const updated = { ...target, data: { ...target.data, ...patch } };
+      setNodes((ns) => ns.map((n) => (n.id === nodeId ? { ...n, data: updated.data } : n)));
+
+      // Switch 갈래가 바뀌면: 없어진 갈래의 선은 지우고, 남은 선의 글자는 새 이름으로
+      if (target.data.kind === 'switch' && patch.params) {
+        const outputs = new Map(outputsOf(updated).map((o) => [o.id, o.label]));
+        setEdges((es) =>
+          es
+            .filter((e) => e.source !== nodeId || outputs.has(e.sourceHandle))
+            .map((e) => (e.source === nodeId ? { ...e, label: outputs.get(e.sourceHandle) } : e))
+        );
+      }
+    },
+    [history, nodes, setNodes, setEdges]
+  );
+
   const selectedNodes = nodes.filter((n) => n.selected);
+  const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null;
+
+  // 선택이 풀리면 휴대폰의 속성 창도 닫는다
+  useEffect(() => {
+    if (!selectedNode) setPropertiesOpen(false);
+  }, [selectedNode]);
   const selectedEdges = edges.filter((e) => e.selected);
   const hasSelection = selectedNodes.length + selectedEdges.length > 0;
 
@@ -173,15 +223,15 @@ function Editor() {
       const key = e.key.toLowerCase();
       if (key === 'z' && !e.shiftKey) {
         e.preventDefault();
-        history.undo();
+        undo();
       } else if (key === 'y' || (key === 'z' && e.shiftKey)) {
         e.preventDefault();
-        history.redo();
+        redo();
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [history]);
+  }, [undo, redo]);
 
   const onDragOver = useCallback((e) => {
     if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
@@ -209,6 +259,16 @@ function Editor() {
     />
   );
 
+  const properties = (
+    <PropertiesPanel
+      node={selectedNode}
+      onEdit={(field, patch) => editNode(selectedNode.id, field, patch)}
+      onEndEdit={endEdit}
+      onDelete={() => deleteElements({ nodes: [selectedNode] })}
+      onClose={isWide ? undefined : () => setPropertiesOpen(false)}
+    />
+  );
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ px: 2, py: 1, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
@@ -217,13 +277,13 @@ function Editor() {
         </Typography>
         {isDesktop && (
           <Typography variant="caption" color="text.secondary">
-            이 기기에 임시 저장됩니다. 서버 저장은 6단계, 노드 속성 편집은 5단계에서 추가됩니다.
+            이 기기에 임시 저장됩니다. 서버 저장은 6단계에서 추가됩니다. 노드를 누르면 설정을 바꿀 수 있습니다.
           </Typography>
         )}
       </Box>
 
       <EditorToolbar
-        history={history}
+        history={historyControls}
         hasSelection={hasSelection}
         onDelete={deleteSelected}
         onFit={() => fitView({ duration: 300 })}
@@ -238,7 +298,7 @@ function Editor() {
           </Box>
         )}
 
-        <Box ref={canvasRef} sx={{ flexGrow: 1, minWidth: 0 }} onDragOver={onDragOver} onDrop={onDrop}>
+        <Box ref={canvasRef} sx={{ flexGrow: 1, minWidth: 0, position: 'relative' }} onDragOver={onDragOver} onDrop={onDrop}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -262,10 +322,38 @@ function Editor() {
           >
             <Background gap={16} />
             <Controls showInteractive={false} />
-            {isDesktop && <MiniMap nodeColor={nodeColor} pannable zoomable />}
+            {isDesktop && <MiniMap nodeColor={nodeColor} pannable zoomable style={{ width: 140, height: 90 }} />}
           </ReactFlow>
+
+          {!isWide && selectedNode && (
+            <Button
+              variant="contained"
+              startIcon={<TuneIcon />}
+              onClick={() => setPropertiesOpen(true)}
+              sx={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 5, boxShadow: 3 }}
+            >
+              속성 편집
+            </Button>
+          )}
         </Box>
+
+        {isWide && (
+          <Box sx={{ width: PROPERTIES_WIDTH, flexShrink: 0, bgcolor: 'background.paper', borderLeft: 1, borderColor: 'divider' }}>
+            {properties}
+          </Box>
+        )}
       </Box>
+
+      {!isWide && (
+        <Drawer
+          anchor="bottom"
+          open={propertiesOpen && !!selectedNode}
+          onClose={() => setPropertiesOpen(false)}
+          PaperProps={{ sx: { height: '75dvh', borderTopLeftRadius: 12, borderTopRightRadius: 12 } }}
+        >
+          {properties}
+        </Drawer>
+      )}
 
       {!isDesktop && (
         <Drawer

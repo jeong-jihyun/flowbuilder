@@ -1,12 +1,24 @@
-import { memo } from 'react';
-import { Handle, Position } from '@xyflow/react';
+import { memo, useEffect } from 'react';
+import { Handle, Position, useUpdateNodeInternals } from '@xyflow/react';
 import { Box, Typography } from '@mui/material';
-import { CATEGORIES, NODE_KINDS } from './nodeCatalog.js';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import { CATEGORIES, NODE_KINDS, outputsOf } from './nodeCatalog.js';
+import { countProblems, summaryOf } from './nodeFields.js';
 
 // 캔버스에 그려지는 노드 한 개.
 // 위쪽 점(들어오는 선)은 Trigger에는 없다. 아래쪽 점(나가는 선)은 노드 종류마다 개수가 다르다.
-function WorkflowNode({ data, selected }) {
+function WorkflowNode({ id, data, selected }) {
   const def = NODE_KINDS[data.kind];
+  const node = { id, data };
+  const outputs = def ? outputsOf(node) : [];
+  const outputKey = outputs.map((o) => o.id).join('|');
+
+  // Switch 갈래가 늘거나 줄면 React Flow에 연결점이 바뀌었다고 알려야 선이 제자리에 붙는다
+  const updateNodeInternals = useUpdateNodeInternals();
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, outputKey, updateNodeInternals]);
+
   if (!def) {
     return (
       <Box className="fb-node" sx={{ borderColor: 'error.main' }}>
@@ -19,7 +31,8 @@ function WorkflowNode({ data, selected }) {
 
   const category = CATEGORIES[def.category];
   const Icon = def.icon;
-  const outputs = def.outputs;
+  const summary = summaryOf(node);
+  const problems = countProblems(node);
 
   return (
     <Box
@@ -27,6 +40,7 @@ function WorkflowNode({ data, selected }) {
       sx={{
         borderColor: selected ? category.color : 'divider',
         boxShadow: selected ? `0 0 0 2px ${category.color}40` : 1,
+        minWidth: outputs.length > 3 ? outputs.length * 52 : undefined,
       }}
     >
       {def.category !== 'trigger' && <Handle type="target" position={Position.Top} />}
@@ -46,7 +60,7 @@ function WorkflowNode({ data, selected }) {
         >
           <Icon fontSize="small" />
         </Box>
-        <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ minWidth: 0, flexGrow: 1 }}>
           <Typography variant="caption" sx={{ color: category.color, fontWeight: 700, lineHeight: 1.2 }}>
             {category.label}
           </Typography>
@@ -54,12 +68,33 @@ function WorkflowNode({ data, selected }) {
             {data.label}
           </Typography>
         </Box>
+        {problems > 0 && (
+          <WarningAmberIcon fontSize="small" color="warning" titleAccess={`설정 필요 ${problems}곳`} />
+        )}
       </Box>
 
+      {(summary || problems > 0) && (
+        <Typography
+          variant="caption"
+          noWrap
+          component="div"
+          color={problems > 0 ? 'warning.dark' : 'text.secondary'}
+          sx={{ mt: 0.5 }}
+        >
+          {problems > 0 ? `설정 필요 ${problems}곳` : summary}
+        </Typography>
+      )}
+
       {outputs.length > 1 && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-around', mt: 1 }}>
+        <Box sx={{ display: 'flex', mt: 1 }}>
           {outputs.map((o) => (
-            <Typography key={o.id} variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+            <Typography
+              key={o.id}
+              variant="caption"
+              color="text.secondary"
+              noWrap
+              sx={{ flex: 1, textAlign: 'center', fontWeight: 700, px: 0.25 }}
+            >
               {o.label}
             </Typography>
           ))}

@@ -60,7 +60,7 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 
 편집기 화면의 `nodes`, `edges`를 그대로 저장합니다. 예시는 설계 문서 6.1을 따릅니다.
 
-노드는 `{ id, type, position, data: { kind, label } }`, 연결선은 `{ id, source, target, sourceHandle, targetHandle, label? }`만 저장합니다. 화면 전용 값(선택 여부, 크기 등)은 저장하지 않습니다. 자세한 값은 설계 문서 4.1(v1.3).
+노드는 `{ id, type, position, data: { kind, label, params } }`, 연결선은 `{ id, source, target, sourceHandle, targetHandle, label? }`만 저장합니다. 화면 전용 값(선택 여부, 크기 등)은 저장하지 않습니다. 자세한 값은 설계 문서 4.1·4.3(v1.4). `params`가 없는 노드(4단계에서 만든 것)는 읽을 때 기본값으로 채웁니다.
 
 4단계에서는 DB 대신 브라우저(localStorage `flowbuilder.editorDraft.v1`)에 같은 모양으로 임시 저장합니다. 6단계에서 `workflows` 컬렉션으로 옮깁니다.
 

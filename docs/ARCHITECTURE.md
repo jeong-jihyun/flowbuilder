@@ -3,7 +3,7 @@
 목표 구조는 [FLOWBUILDER_DESIGN.md](FLOWBUILDER_DESIGN.md) 2장을 따릅니다.
 이 문서는 **지금 실제로 구현된 것**만 적습니다. 구현이 바뀌면 이 문서도 같이 고칩니다.
 
-## 현재 구현 (v0.4.0, 4단계)
+## 현재 구현 (v0.5.0, 5단계)
 
 ```mermaid
 flowchart LR
@@ -39,7 +39,8 @@ flowchart LR
 | 상단 Toolbar | `src/editor/EditorToolbar.jsx` | 구현 (Save·Validate·Run·Publish는 비활성) |
 | 실행 취소·다시 실행 | `src/editor/useHistory.js` | 구현 (최근 50번) |
 | 임시 저장 | `src/editor/draftStorage.js` | 구현 (6단계에서 서버 저장으로 교체) |
-| Properties 패널 | - | 미구현 (5단계) |
+| Properties 패널 | `src/editor/PropertiesPanel.jsx` | 구현 (넓은 화면은 오른쪽, 그 외는 아래에서 올라오는 창) |
+| 노드별 설정 항목·검사·요약 | `src/editor/nodeFields.js` | 구현 (설계 4.3) |
 | 하단 실행 결과 패널 | - | 미구현 (8·10단계) |
 | 상태 확인 API | `api/health.js` | 구현 |
 | 로그인 화면 | `src/pages/SignInPage.jsx` | 구현 (실제 키 검증 전) |
@@ -68,6 +69,10 @@ flowchart LR
 | 실행 취소는 "바꾸기 직전 모습"을 쌓는 방식 | 끌기·추가·삭제·연결·재연결 모두 같은 방법으로 되돌리기 위해 |
 | 노드 추가 시 빈자리를 찾아 놓고 화면을 그쪽으로 옮김 | 가운데에 겹쳐 쌓이거나 화면 밖에 생겨 안 보이는 문제를 막기 위해 |
 | 휴대폰: 노드 목록은 아래에서 올라오는 창, 미니맵 숨김, 연결점 크게 | 설계 3.3 모바일 요구, 손가락으로 연결점을 잡기 쉽게 |
+| 속성 입력칸은 설정 표(`nodeFields.js`)로 자동 생성 | 노드 종류가 늘어도 표에 한 줄 추가로 끝나게 |
+| 속성 패널: 1200px 이상은 오른쪽 고정, 그보다 좁으면 "속성 편집" 버튼 → 아래 창 | 캔버스가 너무 좁아지지 않게 |
+| 같은 입력칸에 이어 친 글자는 실행 취소 한 번으로 되돌림 | 글자마다 기록하면 실행 취소를 수십 번 눌러야 해서 |
+| Switch 갈래가 바뀌면 선 글자를 고치고, 없어진 갈래의 선은 지움 | 존재하지 않는 출구에 선이 남지 않게 |
 | 모바일은 메뉴를 Drawer로 전환 (기준: 화면 폭 900px) | 설계 문서 3.3 모바일 요구 |
 | `vercel.json`에서 `/api/`를 뺀 모든 주소를 `index.html`로 연결 | 새로고침해도 화면이 뜨게 하려고 |
 | Clerk 패키지는 `@clerk/react`, `@clerk/backend` | 예전 `@clerk/clerk-react`는 지원 종료 |

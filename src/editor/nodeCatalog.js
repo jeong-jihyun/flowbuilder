@@ -10,6 +10,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import TransformIcon from '@mui/icons-material/Transform';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
+import { defaultParams, paramsOf } from './nodeFields.js';
 
 export const CATEGORIES = {
   trigger: { label: 'Trigger', color: '#2e7d32', help: '흐름을 시작합니다' },
@@ -18,7 +19,7 @@ export const CATEGORIES = {
 };
 
 // outputs: 아래쪽 연결점. id 가 null 이면 이름 없는 출구 하나.
-// Switch 출구 수는 5단계(속성)에서 사용자가 정하게 바꾼다. 지금은 2개 + 기본값.
+// Switch는 사용자가 정한 갈래(params.cases) + 기본으로 바뀐다 → outputsOf() 사용.
 const ONE_OUT = [{ id: null, label: '' }];
 
 export const NODE_KINDS = {
@@ -53,9 +54,19 @@ export const NODE_KINDS = {
   delay: { category: 'action', label: 'Delay', icon: HourglassBottomIcon, help: '지정 시간 대기', outputs: ONE_OUT },
 };
 
+// 이 노드의 실제 출구 목록
+export function outputsOf(node) {
+  if (node.data.kind === 'switch') {
+    const cases = paramsOf(node).cases;
+    return [...cases.map((c) => ({ id: c.id, label: c.label })), { id: 'default', label: '기본' }];
+  }
+  return NODE_KINDS[node.data.kind]?.outputs || ONE_OUT;
+}
+
 // 출구 이름(YES/NO 등)을 연결선 글자로 쓴다.
-export function outputLabel(kind, handleId) {
-  const out = NODE_KINDS[kind]?.outputs.find((o) => o.id === (handleId ?? null));
+export function outputLabel(node, handleId) {
+  if (!node) return undefined;
+  const out = outputsOf(node).find((o) => o.id === (handleId ?? null));
   return out?.label || undefined;
 }
 
@@ -71,6 +82,6 @@ export function createNode(kind, position, existingNodes) {
     id: `${prefix}${next}`,
     type: def.category,
     position,
-    data: { kind, label: def.label },
+    data: { kind, label: def.label, params: defaultParams(kind) },
   };
 }

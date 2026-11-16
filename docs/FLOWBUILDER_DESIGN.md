@@ -1,9 +1,10 @@
 # FlowBuilder 통합 설계 문서
 
-v1.3 · 2026-11-16
+v1.4 · 2026-11-16
 
 | 버전 | 바뀐 점 |
 | --- | --- |
+| v1.4 | 노드별 설정 항목 정의(4.3), Switch 갈래를 사용자가 정함 |
 | v1.3 | 노드 저장 형태 확정(6.1: `type`은 분류, `data.kind`는 노드 종류), If/Else·Switch 출구 정의(4.1) |
 | v1.2 | 역할 부여 규칙 추가(8.2), DB 연결을 3단계로 앞당김(12장) |
 | v1.1 | Clerk 패키지 이름 반영(9장), DB 용량 정책 확정(14장) |
@@ -193,7 +194,7 @@ flowchart TB
 
 * Trigger는 들어오는 연결점이 없습니다.
 * If / Else는 출구가 YES·NO 두 개입니다. 연결선에 출구 이름이 표시됩니다.
-* Switch는 지금 출구 3개(1, 2, 기본)로 고정입니다. 개수는 5단계(속성)에서 사용자가 정하게 바꿉니다.
+* Switch는 사용자가 정한 갈래(1~10개) + 기본입니다 (v1.4). 갈래를 지우면 그 갈래의 선도 지워집니다.
 * 나머지 노드는 출구가 하나입니다.
 
 노드 저장 형태 (v1.3 확정)
@@ -201,7 +202,27 @@ flowchart TB
 * `type`: 분류 (`trigger` / `condition` / `action`) — 6.1 예시와 같음
 * `data.kind`: 노드 종류 (`manual`, `schedule`, `webhook`, `ifElse`, `switch`, `http`, `gas`, `githubActions`, `transform`, `delay`)
 * `data.label`: 화면에 보이는 노드 이름
+* `data.params`: 노드별 설정 값 (v1.4, 아래 4.3)
 * 연결선의 `sourceHandle`: 어느 출구에서 나왔는지 (`yes`, `no`, `case_1` …, 출구가 하나면 null)
+
+### 4.3 노드별 설정 항목 (v1.4 추가, 5단계 구현)
+
+설계 v1.0에는 노드별 입력 항목이 없어 5단계에서 정했습니다. 코드: `src/editor/nodeFields.js`. 앞 노드의 값은 `{{input.이름}}`으로 씁니다. 인증정보(토큰·키)는 여기에 넣지 않고 9단계 Credentials에서 연결합니다.
+
+| 노드 | 항목 (* 필수) |
+| --- | --- |
+| Manual | 없음 |
+| Schedule | 반복(매시간·매일·매주), 분*(매시간), 요일(매주), 시각*. 한국 시간 기준 |
+| Webhook | 받을 요청 방식(GET·POST). 주소는 서버 저장(6단계) 후 생성 |
+| If / Else | 비교할 값*, 조건(같다·다르다·포함·크다·작다·비어 있다·비어 있지 않다), 기준 값 |
+| Switch | 나눌 값*, 갈래 목록(이름*, 일치 값) 1~10개 |
+| HTTP Request | 요청 방식, 주소*(http/https), 헤더(JSON), 보낼 내용(GET 제외), 제한 시간*(1~300초) |
+| Google Apps Script | 웹 앱 주소*(script.google.com), 함수 이름, 보낼 값(JSON) |
+| GitHub Actions | 저장소*(owner/repo), Workflow 파일*, 브랜치*, 입력값(JSON) |
+| Data Transform | 결과 모양*(JSON) |
+| Delay | 시간*(1 이상), 단위(초·분·시간). 최대 24시간 |
+
+속성 패널은 입력칸마다 바로 검사해 문구를 보여 주고, 문제가 있는 노드에는 "설정 필요 N곳"을 표시합니다. 흐름 전체 검사(연결 누락 등)는 7단계 Validator가 합니다.
 
 ### 4.2 사용자 제어 범위
 
