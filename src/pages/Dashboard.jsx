@@ -8,9 +8,13 @@ import {
   Chip,
   Link,
   Paper,
+  Stack,
   Typography,
   useMediaQuery,
 } from '@mui/material';
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
+import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import ServerAuthCheck from '../components/ServerAuthCheck.jsx';
 import { useApi } from '../lib/api.js';
 import { AUTH_ENABLED } from '../lib/authConfig.js';
@@ -43,19 +47,103 @@ const GRID_THEME = themeQuartz.withParams({
 });
 const DEFAULT_COL_DEF = { flex: 1, minWidth: 100, sortable: true, resizable: false };
 
-function Stat({ label, value, note }) {
+function Stat({ label, value, note, color, tint, icon }) {
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
-      <Typography variant="body2" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-        {value}
-      </Typography>
-      {note && (
-        <Typography variant="caption" color="text.secondary">
-          {note}
-        </Typography>
+    <Paper variant="outlined" sx={{ p: 2.25, minHeight: 144 }}>
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" gap={1}>
+        <Box>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 650 }}>
+            {label}
+          </Typography>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#0B2045', mt: 0.75, letterSpacing: '-.04em' }}>
+            {value}
+          </Typography>
+        </Box>
+        <Box sx={{ width: 40, height: 40, display: 'grid', placeItems: 'center', borderRadius: 2, color, bgcolor: tint }}>
+          {icon}
+        </Box>
+      </Stack>
+      {note && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>{note}</Typography>}
+    </Paper>
+  );
+}
+
+function ExecutionChart({ counts }) {
+  const total = counts?.total ?? null;
+  const failed = counts?.failed ?? 0;
+  const other = total === null ? 0 : Math.max(0, total - failed);
+  const circumference = 2 * Math.PI * 43;
+  const failedLength = total ? (failed / total) * circumference : 0;
+  const otherLength = total ? (other / total) * circumference : 0;
+
+  return (
+    <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, height: '100%' }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 750, color: '#0B2045' }}>실행 기록 분포</Typography>
+      <Typography variant="caption" color="text.secondary">최근 보관 중인 실행 기록의 실패 비중</Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} alignItems="center" justifyContent="space-around" gap={2} sx={{ mt: 2 }}>
+        <Box sx={{ width: 148, height: 148, position: 'relative', flexShrink: 0 }}>
+          <svg viewBox="0 0 120 120" role="img" aria-label={total === null ? '실행 통계를 불러오는 중' : `전체 ${total}건 중 실패 ${failed}건`}>
+            <circle cx="60" cy="60" r="43" fill="none" stroke="#E3EAF3" strokeWidth="12" />
+            {total > 0 && (
+              <g transform="rotate(-90 60 60)">
+                {other > 0 && <circle cx="60" cy="60" r="43" fill="none" stroke="#00BCD4" strokeWidth="12" strokeDasharray={`${otherLength} ${circumference - otherLength}`} />}
+                {failed > 0 && <circle cx="60" cy="60" r="43" fill="none" stroke="#DC4545" strokeWidth="12" strokeDasharray={`${failedLength} ${circumference - failedLength}`} strokeDashoffset={-otherLength} />}
+              </g>
+            )}
+          </svg>
+          <Box sx={{ position: 'absolute', inset: 0, display: 'grid', alignContent: 'center', justifyItems: 'center' }}>
+            <Typography variant="h5" sx={{ color: '#0B2045', fontWeight: 800, lineHeight: 1.1 }}>{total === null ? '–' : total}</Typography>
+            <Typography variant="caption" color="text.secondary">전체 실행</Typography>
+          </Box>
+        </Box>
+        <Stack spacing={1.5} sx={{ minWidth: { sm: 150 } }}>
+          <Stack direction="row" alignItems="center" gap={1}>
+            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#00BCD4' }} />
+            <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>실패 외 기록</Typography>
+            <Typography variant="body2" sx={{ color: '#0B2045', fontWeight: 750 }}>{total === null ? '–' : other}</Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" gap={1}>
+            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: '#DC4545' }} />
+            <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>실패</Typography>
+            <Typography variant="body2" sx={{ color: '#0B2045', fontWeight: 750 }}>{total === null ? '–' : failed}</Typography>
+          </Stack>
+        </Stack>
+      </Stack>
+    </Paper>
+  );
+}
+
+function WorkflowGroupChart({ workflows }) {
+  const groups = useMemo(() => {
+    const counts = new Map();
+    (workflows || []).forEach((workflow) => {
+      const name = workflow.groupName || '그룹 없음';
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
+  }, [workflows]);
+  const max = Math.max(1, ...groups.map(([, value]) => value));
+
+  return (
+    <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, height: '100%' }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 750, color: '#0B2045' }}>그룹별 Workflow</Typography>
+      <Typography variant="caption" color="text.secondary">Workflow가 많은 그룹 상위 5개</Typography>
+      {workflows === null ? (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>데이터를 불러오는 중입니다.</Typography>
+      ) : groups.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>표시할 Workflow가 없습니다.</Typography>
+      ) : (
+        <Stack spacing={1.75} sx={{ mt: 2.5 }}>
+          {groups.map(([name, value]) => (
+            <Stack key={name} direction="row" alignItems="center" gap={1.25}>
+              <Typography variant="body2" color="text.secondary" noWrap title={name} sx={{ width: 112, flexShrink: 0 }}>{name}</Typography>
+              <Box role="progressbar" aria-label={`${name} Workflow 수`} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} sx={{ height: 10, flexGrow: 1, bgcolor: '#F4F7FB', borderRadius: 99, overflow: 'hidden' }}>
+                <Box sx={{ width: `${(value / max) * 100}%`, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #2864FF, #00BCD4)' }} />
+              </Box>
+              <Typography variant="body2" sx={{ width: 24, textAlign: 'right', color: '#0B2045', fontWeight: 750 }}>{value}</Typography>
+            </Stack>
+          ))}
+        </Stack>
       )}
     </Paper>
   );
@@ -122,10 +210,16 @@ export default function Dashboard() {
         </Alert>
       )}
 
-      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, mb: 3 }}>
-        <Stat label="Workflows" value={count} note="내가 속한 그룹 전체" />
-        <Stat label="Executions" value={runCounts ? runCounts.total : '–'} note="남아 있는 실행 기록 (Workflow마다 최근 50개)" />
-        <Stat label="Failures" value={runCounts ? runCounts.failed : '–'} note="그중 실패한 실행" />
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, mb: 2 }}>
+        <Stat label="Workflows" value={count} note="내가 속한 그룹 전체" color="#2864FF" tint="#EAF1FF" icon={<AccountTreeOutlinedIcon />} />
+        <Stat label="Executions" value={runCounts ? runCounts.total : '–'} note="보관 중인 실행 기록" color="#00A6BC" tint="#E5F9FB" icon={<PlayArrowRoundedIcon />} />
+        <Stat label="Failures" value={runCounts ? runCounts.failed : '–'} note="실패한 실행 기록" color="#DC4545" tint="#FFEEEE" icon={<ErrorOutlineRoundedIcon />} />
+      </Box>
+
+      <Typography variant="overline" sx={{ color: '#2864FF', letterSpacing: '.14em', fontWeight: 800 }}>DATA OVERVIEW</Typography>
+      <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, mb: 3 }}>
+        <ExecutionChart counts={runCounts} />
+        <WorkflowGroupChart workflows={workflows} />
       </Box>
 
       <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>

@@ -15,9 +15,9 @@ import { NODE_KIND_INFO } from '../../shared/nodeKinds.js';
 export { outputLabel, outputsOf } from '../../shared/nodeKinds.js';
 
 export const CATEGORIES = {
-  trigger: { label: 'Trigger', color: '#2e7d32', help: '흐름을 시작합니다' },
-  condition: { label: 'Condition', color: '#ed6c02', help: '조건에 따라 길을 나눕니다' },
-  action: { label: 'Action', color: '#2f5bea', help: '실제 일을 합니다' },
+  trigger: { label: 'Trigger', color: '#16A36A', help: '흐름을 시작합니다' },
+  condition: { label: 'Condition', color: '#A76A08', help: '조건에 따라 길을 나눕니다' },
+  action: { label: 'Action', color: '#2864FF', help: '실제 일을 합니다' },
 };
 
 const ICONS = {
