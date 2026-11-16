@@ -103,9 +103,9 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 | `startedBy` | string | Clerk 사용자 ID |
 | `createdAt`, `updatedAt`, `finishedAt` | Date | |
 
-인덱스: `{ workflowId: 1, createdAt: -1 }`, `{ groupId: 1, createdAt: -1 }`, `{ createdAt: 1 }` TTL 30일(10단계, 시작 30일 뒤 자동 삭제)
+인덱스: `{ workflowId: 1, createdAt: -1 }`, `{ groupId: 1, createdAt: -1 }`
 
-용량: Workflow당 최근 50개만 남기고 오래된 것은 실행을 시작할 때 지웁니다. 1건은 대개 수 KB (노드 결과 2KB × 노드 수가 최대). 노드별 로그를 따로 두는 `execution_logs`와 30일 자동 삭제는 10단계.
+용량: 1건은 대개 수 KB (노드 결과 2KB × 노드 수가 최대). 시스템은 기록을 자동으로 지우지 않습니다. 30일이 지난 기록이 있으면 Executions 화면이 알려 주고 사용자가 직접 삭제합니다(10단계).
 
 ### credentials (9단계)
 
@@ -152,7 +152,7 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 
 정한 규칙 (10단계에서 구현)
 
-1. `execution_logs`는 30일이 지나면 자동 삭제합니다 (MongoDB TTL 인덱스).
+1. 시스템은 데이터를 자동으로 삭제하지 않습니다(2026-11-17 변경). 30일이 지난 실행 기록은 화면에서 알려 주고 사용자가 직접 삭제합니다.
 2. 노드 결과(output)는 앞부분 2KB까지만 저장합니다.
 3. 6단계에서 DB를 연결한 뒤 실제 크기를 재서 위 어림값을 고칩니다.
 

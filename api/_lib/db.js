@@ -23,9 +23,11 @@ async function ensureIndexes(db) {
     db.collection('webhook_tokens').createIndex({ workflowId: 1, nodeId: 1 }),
     db.collection('executions').createIndex({ status: 1, resumeAt: 1 }),
     db.collection('workflows').createIndex({ status: 1 }),
-    // 10단계: 실행 기록은 시작 30일 뒤 자동 삭제 (무료 DB 512MB 보호)
-    db.collection('executions').createIndex({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 3600 }),
   ]);
+  // 규칙: 시스템이 기록을 자동으로 지우지 않는다. 앞서 만들어진 자동 삭제(TTL) 인덱스가 있으면 없앤다.
+  const existing = await db.collection('executions').indexes().catch(() => []);
+  const ttl = existing.find((i) => i.expireAfterSeconds !== undefined);
+  if (ttl) await db.collection('executions').dropIndex(ttl.name);
 }
 
 // DB를 돌려준다. MONGODB_URI가 없으면 null.

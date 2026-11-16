@@ -14,7 +14,6 @@ import { loadSecret } from './credentials.js';
 
 export const RUN_LIMITS = {
   activePerWorkflow: 3, // 동시에 진행 중인 실행
-  keepPerWorkflow: 50, // Workflow마다 남기는 실행 기록 (10단계에서 30일 자동 삭제 추가)
   outputBytes: 2000, // 노드 결과는 앞부분 2KB까지만 저장 (DB 용량 정책)
   inputBytes: 10_000,
   budgetMs: 20_000, // 실행 시작 요청 한 번에 쓰는 시간
@@ -215,14 +214,6 @@ export async function launchExecution(db, wf, { input: rawInput, triggerNodeId, 
   };
   const { insertedId } = await executions(db).insertOne(doc);
 
-  // 오래된 기록 정리: Workflow마다 최근 50개만
-  const old = await executions(db)
-    .find({ workflowId: wf._id, status: { $nin: ACTIVE } }, { projection: { _id: 1 } })
-    .sort({ createdAt: -1 })
-    .skip(RUN_LIMITS.keepPerWorkflow)
-    .toArray();
-  if (old.length) await executions(db).deleteMany({ _id: { $in: old.map((o) => o._id) } });
-
   return advanceExecution(db, insertedId, budgetMs);
 }
 
@@ -276,8 +267,9 @@ export async function cancelExecution(db, userId, id) {
   return view(await executions(db).findOne({ _id: ex._id }), { full: true });
 }
 
-// 목록: workflowId 를 주면 그 Workflow의 최근 20개, 아니면 내 그룹 전체의 최근 20개 + 개수
 const STATUSES = ['running', 'waiting', 'success', 'failed', 'cancelled'];
+export const OLD_DAYS = 30; // 이보다 오래된 기록은 "정리를 권함"으로 알린다 (시스템이 지우지는 않음)
+const DAY_MS = 24 * 3600 * 1000;
 export const LIST_PAGE = 20;
 export const LIST_MAX = 50;
 
@@ -302,12 +294,37 @@ export async function listExecutions(db, userId, { workflowId, status, before, l
     page.createdAt = { $lt: d };
   }
   const n = Math.min(LIST_MAX, Math.max(1, Math.floor(Number(limit)) || LIST_PAGE));
-  const [rows, total, failed] = await Promise.all([
+  const scope = workflowId ? { workflowId: filter.workflowId } : { groupId: filter.groupId };
+  const [rows, total, failed, oldCount] = await Promise.all([
     executions(db).find(page, { projection: { graph: 0, queue: 0, input: 0 } }).sort({ createdAt: -1 }).limit(n + 1).toArray(),
-    executions(db).countDocuments(workflowId ? { workflowId: filter.workflowId } : { groupId: filter.groupId }),
-    executions(db).countDocuments({ ...(workflowId ? { workflowId: filter.workflowId } : { groupId: filter.groupId }), status: 'failed' }),
+    executions(db).countDocuments(scope),
+    executions(db).countDocuments({ ...scope, status: 'failed' }),
+    executions(db).countDocuments({ ...scope, status: { $nin: ACTIVE }, createdAt: { $lt: new Date(clock() - OLD_DAYS * DAY_MS) } }),
   ]);
   const list = rows.slice(0, n);
   const hasMore = rows.length > n;
-  return { executions: list.map((ex) => view(ex)), counts: { total, failed }, hasMore };
+  return { executions: list.map((ex) => view(ex)), counts: { total, failed, old: oldCount }, hasMore };
+}
+
+// 삭제는 사용자가 직접 한다. 시스템이 기록을 자동으로 지우지 않는다.
+// 하나 삭제: Owner·Admin·Editor. 진행 중인 실행은 먼저 취소해야 한다.
+export async function deleteExecution(db, userId, id) {
+  const ex = await loadExecution(db, userId, id, 'edit');
+  if (ACTIVE.includes(ex.status)) throw new ApiError(409, 'EXECUTION_ACTIVE');
+  await executions(db).deleteOne({ _id: ex._id, status: { $nin: ACTIVE } });
+}
+
+// N일보다 오래된, 끝난 기록 한꺼번에 삭제: 멤버 관리 권한(Owner·Admin)이 있는 그룹의 것만
+export async function deleteOldExecutions(db, userId, { olderThanDays } = {}) {
+  const days = Math.floor(Number(olderThanDays));
+  if (!Number.isFinite(days) || days < 7) throw new ApiError(400, 'INVALID_DAYS');
+  const roles = await myRoles(db, userId);
+  const groupIds = [...roles.entries()].filter(([, role]) => can(role, 'manageMembers')).map(([g]) => toObjectId(g));
+  if (groupIds.length === 0) throw new ApiError(403, 'FORBIDDEN');
+  const { deletedCount } = await executions(db).deleteMany({
+    groupId: { $in: groupIds },
+    status: { $nin: ACTIVE },
+    createdAt: { $lt: new Date(clock() - days * DAY_MS) },
+  });
+  return { deleted: deletedCount };
 }

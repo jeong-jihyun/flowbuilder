@@ -14,7 +14,7 @@
 | 되는 것 | 아직 안 되는 것 |
 | --- | --- |
 | 화면 틀(상단바, 메뉴, PC/모바일 전환) | 9단계 항목의 DB·화면·실제 연동 시험, 배포 |
-| Dashboard: Workflow 수·최근 Workflow·실행 수·실패 수 | 실행 기록 화면·30일 자동 삭제 (10단계) |
+| Dashboard: Workflow 수·최근 Workflow·실행 수·실패 수 |  |
 | 실행: Run(입력값·Trigger 선택), 진행 상태·노드별 결과·취소, 실행 기록 (`/api/workflows/:id/run`, `/api/executions`) | |
 | 외부 연동: Credentials(`/api/credentials`), GAS·GitHub Actions 노드, Webhook 주소(`/api/hooks/<토큰>`), 자동 실행·예약, 5분 주기 작업(`/api/cron`) — 설정은 `.env.example` | |
 | Workflow 저장·목록·이름 바꾸기·삭제, 동시 저장 충돌 알림 (`/api/workflows`) | |
@@ -97,7 +97,8 @@ flowbuilder/
 
 ## 주요 변경 사항
 
-- 2026-11-17 · v0.10.0 · 10단계 실행 기록 화면과 30일 자동 삭제
+- 2026-11-17 · v0.10.1 · 자동 삭제 제거, 사용자가 직접 삭제하도록 변경
+- 2026-11-17 · v0.10.0 · 10단계 실행 기록 화면
 - 2026-11-17 · v0.9.0 · 9단계 외부 연동 (GAS · GitHub Actions · Webhook · 예약 실행)
 - 2026-11-16 · v0.8.0 · 8단계 실행 엔진
 - 2026-11-16 · v0.7.0 · 7단계 Workflow 검증 (Validator)

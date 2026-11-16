@@ -67,6 +67,8 @@ const ERROR_TEXT = {
   INVALID_TRIGGER: '시작할 Trigger를 찾을 수 없습니다.',
   EXECUTION_NOT_FOUND: '실행 기록이 없거나, 그 Workflow가 속한 그룹의 멤버가 아닙니다.',
   ALREADY_FINISHED: '이미 끝난 실행입니다.',
+  EXECUTION_ACTIVE: '진행 중인 실행은 지울 수 없습니다. 먼저 취소하세요.',
+  INVALID_DAYS: '7일 이상으로 정해 주세요.',
   INVALID_STATUS: '상태 값이 올바르지 않습니다.',
   INVALID_BEFORE: '날짜 값이 올바르지 않습니다.',
   CREDENTIALS_NOT_CONFIGURED: '서버에 CREDENTIALS_KEY가 아직 등록되지 않아 인증정보를 쓸 수 없습니다.',

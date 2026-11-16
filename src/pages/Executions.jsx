@@ -7,7 +7,9 @@ import {
   Chip,
   CircularProgress,
   Dialog,
+  DialogActions,
   DialogContent,
+  DialogContentText,
   DialogTitle,
   List,
   ListItemButton,
@@ -31,7 +33,8 @@ function seconds(ex) {
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}초`;
 }
 
-// 실행 기록 (/executions): 내가 속한 그룹의 모든 실행을 최신순으로. 기록은 시작 30일 뒤 자동 삭제된다.
+// 실행 기록 (/executions): 내가 속한 그룹의 모든 실행을 최신순으로.
+// 시스템은 기록을 자동으로 지우지 않는다. 오래된 기록이 쌓이면 알려 주고, 삭제는 사용자가 직접 한다.
 export default function Executions() {
   const api = useApi();
   const [status, setStatus] = useState('');
@@ -42,6 +45,8 @@ export default function Executions() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [detail, setDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [confirm, setConfirm] = useState(null); // 'old' 또는 삭제할 실행
+  const [notice, setNotice] = useState('');
 
   const load = useCallback(async () => {
     setError('');
@@ -69,6 +74,25 @@ export default function Executions() {
     if (r.ok) {
       setRows((cur) => [...cur, ...r.body.executions]);
       setHasMore(r.body.hasMore);
+    } else setError(errorText(r));
+  }
+
+  async function removeOld() {
+    setConfirm(null);
+    const r = await api('/executions?olderThanDays=30', { method: 'DELETE' });
+    if (r.ok) {
+      setNotice(`30일 지난 기록 ${r.body.deleted}건을 삭제했습니다.`);
+      load();
+    } else setError(errorText(r));
+  }
+
+  async function removeOne(ex) {
+    setConfirm(null);
+    const r = await api(`/executions/${ex.id}`, { method: 'DELETE' });
+    if (r.ok) {
+      setDetail(null);
+      setNotice('기록을 삭제했습니다.');
+      load();
     } else setError(errorText(r));
   }
 
@@ -115,10 +139,28 @@ export default function Executions() {
         </TextField>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
-        내가 속한 그룹의 실행 기록입니다. 기록은 시작한 지 30일이 지나면 자동으로 지워집니다.
+        내가 속한 그룹의 실행 기록입니다. 기록은 자동으로 지워지지 않으니, 오래된 것은 직접 삭제해 용량을 아껴 주세요.
         {counts && ` 현재 전체 ${counts.total}건, 실패 ${counts.failed}건.`}
       </Typography>
 
+      {counts?.old > 0 && (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setConfirm('old')}>
+              삭제
+            </Button>
+          }
+        >
+          30일이 지난 실행 기록이 {counts.old}건 있습니다. 무료 DB 용량을 위해 삭제를 권합니다. (Owner·Admin만 한꺼번에 삭제할 수 있습니다)
+        </Alert>
+      )}
+      {notice && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setNotice('')}>
+          {notice}
+        </Alert>
+      )}
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
           {error}
@@ -191,11 +233,30 @@ export default function Executions() {
             </List>
           )}
           {detail && (
+            <Button color="error" size="small" sx={{ mt: 1, mr: 1 }} onClick={() => setConfirm(detail)}>
+              이 기록 삭제
+            </Button>
+          )}
+          {detail && (
             <Button component={RouterLink} to={`/workflows/${detail.workflowId}`} size="small" sx={{ mt: 1 }}>
               Workflow 열기
             </Button>
           )}
         </DialogContent>
+      </Dialog>
+      <Dialog open={!!confirm} onClose={() => setConfirm(null)} fullWidth maxWidth="xs">
+        <DialogTitle>실행 기록 삭제</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {confirm === 'old' ? `30일이 지난 끝난 실행 기록 ${counts?.old ?? ''}건을 모두 지웁니다.` : `"${confirm?.workflowName}" 기록 1건을 지웁니다.`} 되돌릴 수 없습니다.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirm(null)}>취소</Button>
+          <Button color="error" variant="contained" onClick={() => (confirm === 'old' ? removeOld() : removeOne(confirm))}>
+            삭제
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

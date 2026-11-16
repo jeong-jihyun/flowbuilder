@@ -205,7 +205,9 @@ Workflow API 오류
 | GET | `/api/executions?workflowId=` | 그 Workflow의 그룹 멤버 | - | 200 `{ executions: [Execution], counts: { total, failed }, hasMore }` 최신순 20개 |
 | GET | `/api/executions` | 로그인한 누구나 | - | 200 위와 같음 (내가 속한 그룹 전체) |
 
-목록 쿼리(10단계): `status`(running·waiting·success·failed·cancelled), `before`(ISO 시각, 이보다 먼저 시작한 것 = 다음 쪽), `limit`(기본 20, 최대 50). 잘못된 값은 400 `INVALID_STATUS`·`INVALID_BEFORE`. 기록은 시작 30일 뒤 자동 삭제됩니다.
+목록 쿼리(10단계): `status`(running·waiting·success·failed·cancelled), `before`(ISO 시각, 이보다 먼저 시작한 것 = 다음 쪽), `limit`(기본 20, 최대 50). 잘못된 값은 400 `INVALID_STATUS`·`INVALID_BEFORE`. 
+
+삭제(사용자가 직접): `DELETE /api/executions/:id` 끝난 기록 하나(Owner·Admin·Editor, 진행 중이면 409 `EXECUTION_ACTIVE`), `DELETE /api/executions?olderThanDays=N` N일(7 이상)보다 오래된 끝난 기록(Owner·Admin, 200 `{ deleted }`, 잘못된 N은 400 `INVALID_DAYS`). 목록 응답의 `counts.old`는 30일이 지난 끝난 기록 수입니다. 시스템은 기록을 자동으로 지우지 않습니다.
 
 | GET | `/api/executions/:id` | 그룹 멤버 | - | 200 `{ execution }` 진행 중이고 처리할 차례면 최대 8초 더 진행한 뒤 |
 | POST | `/api/executions/:id/cancel` | 그룹의 Owner·Admin·Editor | - | 200 `{ execution }` |
