@@ -11,6 +11,8 @@ import {
   TableRow,
   Typography,
 } from '@mui/material';
+import ServerAuthCheck from '../components/ServerAuthCheck.jsx';
+import { AUTH_ENABLED } from '../lib/authConfig.js';
 
 // 아직 DB가 연결되지 않아 화면 모양만 보여주는 예시 값이다.
 // 6단계(Workflow 저장)에서 실제 데이터로 바꾼다.
@@ -31,6 +33,8 @@ export default function Dashboard() {
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
         Dashboard
       </Typography>
+
+      {AUTH_ENABLED && <ServerAuthCheck />}
 
       <Alert severity="info" sx={{ mb: 2 }}>
         지금 보이는 숫자와 목록은 화면 모양 확인용 예시입니다.

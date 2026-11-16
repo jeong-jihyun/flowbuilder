@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
+  Alert,
   AppBar,
   Avatar,
   Box,
@@ -15,7 +16,9 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
+import { UserButton } from '@clerk/react';
 import { MENU } from '../menu.js';
+import { AUTH_ENABLED } from '../lib/authConfig.js';
 
 const SIDE_WIDTH = 220;
 
@@ -58,10 +61,16 @@ export default function AppShell({ children }) {
           <Typography variant="h6" color="primary" sx={{ fontWeight: 700, flexGrow: 1 }}>
             FlowBuilder
           </Typography>
-          {/* 2단계(인증)에서 Clerk 로그인 사용자 정보로 바꾼다 */}
-          <Avatar sx={{ width: 32, height: 32 }} />
+          {/* 로그인한 사용자 사진. 누르면 계정 관리·로그아웃 메뉴가 열린다 */}
+          {AUTH_ENABLED ? <UserButton /> : <Avatar sx={{ width: 32, height: 32 }} />}
         </Toolbar>
       </AppBar>
+
+      {!AUTH_ENABLED && (
+        <Alert severity="warning" square sx={{ py: 0 }}>
+          로그인 미설정: Clerk 키가 없어 누구나 볼 수 있는 상태입니다.
+        </Alert>
+      )}
 
       <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 0 }}>
         {isDesktop ? (

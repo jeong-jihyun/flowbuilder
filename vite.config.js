@@ -11,6 +11,7 @@ export default defineConfig({
           react: ['react', 'react-dom', 'react-router-dom'],
           mui: ['@mui/material', '@emotion/react', '@emotion/styled'],
           flow: ['@xyflow/react'],
+          clerk: ['@clerk/react'],
         },
       },
     },

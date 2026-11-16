@@ -3,15 +3,18 @@
 목표 구조는 [FLOWBUILDER_DESIGN.md](FLOWBUILDER_DESIGN.md) 2장을 따릅니다.
 이 문서는 **지금 실제로 구현된 것**만 적습니다. 구현이 바뀌면 이 문서도 같이 고칩니다.
 
-## 현재 구현 (v0.1.0, 1단계)
+## 현재 구현 (v0.2.0, 2단계)
 
 ```mermaid
 flowchart LR
     USER["사용자 브라우저"] --> FRONT["React 18 + Vite (정적 파일)"]
-    FRONT --> SHELL["AppShell: 상단바 + 메뉴"]
+    FRONT --> CLERK["Clerk 로그인 화면"]
+    CLERK -->|로그인 성공| SHELL["AppShell: 상단바 + 메뉴"]
     SHELL --> DASH["Dashboard (예시 데이터)"]
     SHELL --> EDITOR["WorkflowEditor (React Flow 미리보기)"]
-    USER --> API["/api/health (Vercel Function)"]
+    USER --> API["/api/health (누구나)"]
+    DASH -->|토큰 첨부| ME["/api/me"]
+    ME --> AUTH["api/_lib/auth.js: 토큰 검증"]
 ```
 
 ## 구성요소
@@ -23,7 +26,11 @@ flowchart LR
 | Dashboard | `src/pages/Dashboard.jsx` | 화면만 (예시 데이터) |
 | Workflow Editor | `src/pages/WorkflowEditor.jsx` | 미리보기 (이동·연결만) |
 | 상태 확인 API | `api/health.js` | 구현 |
-| 인증 (Clerk) | - | 미구현 (2단계) |
+| 로그인 화면 | `src/pages/SignInPage.jsx` | 구현 (실제 키 검증 전) |
+| 로그인 여부에 따른 화면 전환 | `src/App.jsx`, `src/main.jsx` | 구현 |
+| 서버 토큰 검증 | `api/_lib/auth.js` | 구현 |
+| 로그인 확인 API | `api/me.js` | 구현 |
+| API 호출 공통 함수 | `src/lib/api.js` | 구현 |
 | DB (MongoDB Atlas) | - | 미구현 (6단계) |
 | 실행 엔진 / Runner Adapter | - | 미구현 (8~9단계) |
 
@@ -35,10 +42,20 @@ flowchart LR
 | 편집기 화면만 따로 불러오기(lazy) | React Flow가 무거워서 첫 화면을 가볍게 하려고 |
 | 모바일은 메뉴를 Drawer로 전환 (기준: 화면 폭 900px) | 설계 문서 3.3 모바일 요구 |
 | `vercel.json`에서 `/api/`를 뺀 모든 주소를 `index.html`로 연결 | 새로고침해도 화면이 뜨게 하려고 |
-| Clerk 패키지는 아직 설치하지 않음 | 키 없이 넣으면 앱이 뜨지 않음. 2단계에서 추가 |
+| Clerk 패키지는 `@clerk/react`, `@clerk/backend` | 예전 `@clerk/clerk-react`는 지원 종료 |
+| 키가 없으면 로그인 없이 띄우고 경고 표시 | 키 없이 Clerk를 켜면 앱이 뜨지 않음 |
+| 모든 API는 `requireUser()`를 첫 줄에서 호출 | 화면 제어만으로 보안을 대신하지 않기 위해 |
+| `api/_lib` 폴더 이름을 `_`로 시작 | 공통 코드가 주소(API)로 노출되지 않게 |
 
 ## 지켜야 할 경계
 
 - 화면(React Flow)은 그리기만 합니다. 실행 로직을 화면에 넣지 않습니다.
 - 브라우저에서 MongoDB에 직접 붙지 않습니다. 항상 `/api`를 거칩니다.
 - 비밀 값은 서버 환경변수로만 둡니다. `VITE_`로 시작하는 값은 브라우저에 공개됩니다.
+
+## 로그인 흐름
+
+1. 브라우저가 Clerk 화면에서 로그인합니다(이메일 또는 Google).
+2. 화면이 API를 부를 때 Clerk가 준 토큰을 `Authorization: Bearer ...`로 붙입니다.
+3. 서버는 `CLERK_SECRET_KEY`로 토큰이 진짜인지 확인하고 사용자 ID를 꺼냅니다.
+4. 3단계부터는 여기에 그룹 권한 확인이 이어집니다.

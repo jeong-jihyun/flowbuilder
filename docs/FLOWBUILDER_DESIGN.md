@@ -1,6 +1,11 @@
 # FlowBuilder 통합 설계 문서
 
-v1.0 · 2026-11-16
+v1.1 · 2026-11-16
+
+| 버전 | 바뀐 점 |
+| --- | --- |
+| v1.1 | Clerk 패키지 이름 반영(9장), DB 용량 정책 확정(14장) |
+| v1.0 | 최초 작성 |
 
 ### 1. 프로젝트 개요
 
@@ -376,7 +381,7 @@ flowchart TD
 | Language        | JavaScript                     |
 | Workflow Editor | @xyflow/react                  |
 | UI Framework    | MUI                            |
-| Authentication  | Clerk                          |
+| Authentication  | Clerk (@clerk/react, @clerk/backend) |
 | Backend         | Vercel Functions               |
 | Database        | MongoDB Atlas Free             |
 | Hosting         | Vercel                         |
@@ -544,4 +549,4 @@ React Flow 기반의 Workflow Automation 플랫폼을 구현합니다.
 
 * Credential 암호화 및 키 관리 방식
 
-* MongoDB Free 플랜의 용량 및 운영 한도
+* ~~MongoDB Free 플랜의 용량 및 운영 한도~~ → 확정 (2026-11-16): 512MB 한도, 실행 로그 30일 자동 삭제, 노드 결과 2KB 제한. 상세는 `DATABASE_DESIGN.md`

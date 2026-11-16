@@ -12,7 +12,7 @@ React Flow 기반의 Workflow Automation 플랫폼을 구현합니다.
 - JavaScript
 - @xyflow/react
 - MUI
-- Clerk
+- Clerk (@clerk/react, @clerk/backend)
 - Vercel Functions
 - MongoDB Atlas
 - GitHub
