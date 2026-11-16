@@ -126,7 +126,7 @@ export default function Workflows() {
                   primaryTypographyProps={{ fontWeight: 600 }}
                   sx={{ minWidth: 200 }}
                 />
-                <Chip size="small" label={w.status === 'draft' ? 'Draft' : w.status} />
+                <Chip size="small" label={w.status === 'draft' ? 'Draft' : '자동 실행 중'} color={w.status === 'draft' ? 'default' : 'success'} />
                 {!w.permissions.edit && <Chip size="small" variant="outlined" label={`${ROLE_LABELS[w.myRole]} · 보기 전용`} />}
               </ListItemButton>
             ))}

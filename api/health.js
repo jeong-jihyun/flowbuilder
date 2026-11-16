@@ -15,6 +15,22 @@ async function dbStatus() {
   }
 }
 
+// 서버 설정이 되어 있는지만 true/false 로 알려 준다 (값은 절대 내보내지 않는다)
+function configStatus() {
+  const key = process.env.CREDENTIALS_KEY;
+  let credentialsKey = false;
+  try {
+    credentialsKey = !!key && Buffer.from(key, 'base64').length === 32;
+  } catch {
+    credentialsKey = false;
+  }
+  return {
+    auth: !!process.env.CLERK_SECRET_KEY,
+    credentialsKey,
+    cronSecret: !!process.env.CRON_SECRET,
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
@@ -25,5 +41,6 @@ export default async function handler(req, res) {
     service: 'flowbuilder',
     time: new Date().toISOString(),
     db: await dbStatus(),
+    config: configStatus(),
   });
 }

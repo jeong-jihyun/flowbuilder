@@ -328,3 +328,12 @@ export async function deleteOldExecutions(db, userId, { olderThanDays } = {}) {
   });
   return { deleted: deletedCount };
 }
+
+// 끝난 실행을 같은 입력·같은 Trigger로 다시 실행한다 (저장된 최신 버전으로). 새 실행 기록이 생긴다.
+export async function retryExecution(db, userId, id) {
+  const ex = await loadExecution(db, userId, id, 'run');
+  if (ACTIVE.includes(ex.status)) throw new ApiError(409, 'EXECUTION_ACTIVE');
+  const { wf } = await loadWithRole(db, userId, String(ex.workflowId), 'view');
+  const next = await launchExecution(db, wf, { input: ex.input, triggerNodeId: ex.triggerNodeId, startedBy: userId });
+  return view(next, { full: true });
+}

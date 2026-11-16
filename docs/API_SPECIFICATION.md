@@ -31,8 +31,10 @@ API가 추가·변경되면 이 문서를 같이 고칩니다.
 응답 200
 
 ```json
-{ "ok": true, "service": "flowbuilder", "time": "2026-11-16T09:00:00.000Z", "db": "ok" }
+{ "ok": true, "service": "flowbuilder", "time": "2026-11-16T09:00:00.000Z", "db": "ok", "config": { "auth": true, "credentialsKey": true, "cronSecret": true } }
 ```
+
+`config`(v0.11.0): 서버 설정이 되어 있는지만 true/false로 알려 줍니다. 값은 절대 보내지 않습니다. `credentialsKey`는 `CREDENTIALS_KEY`가 32바이트 base64일 때만 true.
 
 `db`: `ok`(연결됨) / `not_configured`(`MONGODB_URI` 없음) / `error`(연결 실패, 자세한 내용은 서버 로그에만). 3단계에서 추가.
 
@@ -211,6 +213,7 @@ Workflow API 오류
 
 | GET | `/api/executions/:id` | 그룹 멤버 | - | 200 `{ execution }` 진행 중이고 처리할 차례면 최대 8초 더 진행한 뒤 |
 | POST | `/api/executions/:id/cancel` | 그룹의 Owner·Admin·Editor | - | 200 `{ execution }` |
+| POST | `/api/executions/:id/retry` | 그룹의 Owner·Admin·Editor | - | 201 `{ execution }` 같은 입력·시작 노드로 새 실행. 진행 중이면 409 `EXECUTION_ACTIVE` (v0.11.0) |
 
 Execution
 

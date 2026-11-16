@@ -120,7 +120,7 @@ export default function EditorToolbar({
         disabled={!onRun || !canRun}
         color="success"
       />
-      <ToolButton compact={compact} icon={<PublishIcon />} label="Publish" tip="게시는 아직 만들지 않았습니다 (실행 엔진 이후)" disabled />
+      <ToolButton compact={compact} icon={<PublishIcon />} label="Publish" tip={'게시 기능은 Workflow 위쪽의 "자동 실행" 스위치가 대신합니다'} disabled />
     </Box>
   );
 }

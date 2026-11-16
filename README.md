@@ -92,6 +92,7 @@ flowbuilder/
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 현재 구현된 구조 |
 | [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md) | API 명세 |
 | [docs/DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | DB 설계 |
+| [docs/TEST_SCENARIOS.md](docs/TEST_SCENARIOS.md) | 메뉴별 테스트 시나리오 (사용자가 직접 확인) |
 | [docs/CHANGE_MANAGEMENT.md](docs/CHANGE_MANAGEMENT.md) | 변경 기록 (수정할 때마다 필수) |
 | [docs/AI_HANDOFF_PROMPT.md](docs/AI_HANDOFF_PROMPT.md) | 후임 개발자·AI 전달 지침 |
 

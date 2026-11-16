@@ -25,6 +25,7 @@ import { AUTH_ENABLED } from '../lib/authConfig.js';
 import { formatDate } from '../lib/format.js';
 
 const SOURCE_LABEL = { manual: '수동', webhook: 'Webhook', schedule: '예약' };
+const FINISHED = ['success', 'failed', 'cancelled'];
 const STATUS_OPTIONS = ['running', 'waiting', 'success', 'failed', 'cancelled'];
 
 function seconds(ex) {
@@ -92,6 +93,15 @@ export default function Executions() {
     if (r.ok) {
       setDetail(null);
       setNotice('기록을 삭제했습니다.');
+      load();
+    } else setError(errorText(r));
+  }
+
+  async function retry(ex) {
+    const r = await api(`/executions/${ex.id}/retry`, { method: 'POST' });
+    if (r.ok) {
+      setDetail(null);
+      setNotice('같은 입력으로 다시 실행했습니다. 목록 맨 위에서 확인하세요.');
       load();
     } else setError(errorText(r));
   }
@@ -231,6 +241,11 @@ export default function Executions() {
                   <StepRow key={s.nodeId} step={s} branchLabel="" onPick={() => {}} />
                 ))}
             </List>
+          )}
+          {detail && FINISHED.includes(detail.status) && (
+            <Button size="small" variant="outlined" sx={{ mt: 1, mr: 1 }} onClick={() => retry(detail)}>
+              다시 실행
+            </Button>
           )}
           {detail && (
             <Button color="error" size="small" sx={{ mt: 1, mr: 1 }} onClick={() => setConfirm(detail)}>
