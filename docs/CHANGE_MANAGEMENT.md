@@ -20,7 +20,7 @@
 | 변경 목적 | 설계 문서 12장 개발 순서의 4단계(React Flow 편집기). 설계 3.2 화면 구성과 4.1 노드 10종, 4.2 사용자 제어(추가·삭제·이동·연결·연결 해제·재연결·확대) 구현 |
 | 변경 파일 | 신규: `src/editor/nodeCatalog.js`, `src/editor/WorkflowNode.jsx`, `src/editor/NodePalette.jsx`, `src/editor/EditorToolbar.jsx`, `src/editor/useHistory.js`, `src/editor/draftStorage.js`, `src/editor/editor.css` / 수정: `src/pages/WorkflowEditor.jsx`(전면 교체), `package.json`, `package-lock.json`, `README.md`, `docs/ARCHITECTURE.md`, `docs/DATABASE_DESIGN.md`, `docs/FLOWBUILDER_DESIGN.md`(v1.3), `docs/CHANGE_MANAGEMENT.md` |
 | 영향 범위 | Workflow Editor 화면만. 서버 API·DB 변경 없음 (`API_SPECIFICATION.md` 변경 없음) |
-| 배포 상태 | 아래 "배포" 참고 |
+| 배포 상태 | 운영 배포 (2026-11-16) · https://flowbuilder-roan.vercel.app/editor · 커밋 dfac494 |
 | 롤백 방법 | Vercel에서 이전 배포(커밋 b8fd939)로 되돌리기, 또는 `git revert`. 브라우저 임시 저장 값은 그대로 남지만 이전 버전은 읽지 않으므로 영향 없음 |
 
 설계와 달라진 점 (설계 문서 v1.3에 반영함)
@@ -49,7 +49,7 @@
 | 수행함 | 휴대폰 폭에서 새 노드가 화면 밖에 생기던 문제 → 화면을 새 노드로 옮기도록 고친 뒤 화면 안에 표시 확인 | 통과 |
 | 수행함 | 새로 연 화면에서 콘솔 오류 0건 (수정 중 화면 자동 갱신 때 난 일시 오류는 제외) | 통과 |
 | 수행 안 함 | 실제 휴대폰 터치로 노드 끌기·연결점 잇기 | 미확인 |
-| 수행 안 함 | 로그인한 배포 주소에서 편집기 조작 | 배포 후 확인 필요 |
+| 수행함 | 로그인한 배포 주소 `/editor`: 예시 흐름·노드 목록·Toolbar 표시, 콘솔 오류 0건, `/api/health` db ok | 통과 |
 
 미완료 항목
 
