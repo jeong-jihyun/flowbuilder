@@ -1,0 +1,26 @@
+# FlowBuilder 서버 주기 작업 (9단계)
+# 5분마다 /api/cron 을 불러 예약 실행(Schedule)을 시작하고, 아무도 보고 있지 않은 실행을 이어서 진행한다.
+# 필요: 저장소 Settings → Secrets and variables → Actions 에 FLOWBUILDER_CRON_SECRET
+#       (Vercel 환경변수 CRON_SECRET 과 같은 값)
+# 알아둘 것: GitHub 예약은 몇 분 늦을 수 있고, 저장소에 60일 동안 변경이 없으면 GitHub가 예약을 멈춘다.
+name: FlowBuilder tick
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call /api/cron
+        env:
+          CRON_SECRET: ${{ secrets.FLOWBUILDER_CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then
+            echo "FLOWBUILDER_CRON_SECRET 이 등록되지 않았습니다."
+            exit 1
+          fi
+          curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://flowbuilder-roan.vercel.app/api/cron

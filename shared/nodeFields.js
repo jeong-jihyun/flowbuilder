@@ -3,7 +3,7 @@
 // 값은 node.data.params 에 저장한다. 비밀번호·토큰 같은 인증정보는 여기 넣지 않는다(9단계 Credentials).
 //
 // 필드 모양: { key, label, type, default, required, options, min, max, pattern, placeholder, help, showIf }
-// type: text | number | select | time | textarea | json | cases(Switch 전용)
+// type: text | number | select | time | textarea | json | cases(Switch 전용) | credential(인증정보 고르기, credType 으로 종류 지정)
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((m) => ({ value: m, label: m }));
 
@@ -46,7 +46,7 @@ export const NODE_FIELDS = {
     summary: () => '',
   },
   schedule: {
-    help: '시간은 한국 시간(Asia/Seoul) 기준입니다.',
+    help: '시간은 한국 시간(Asia/Seoul) 기준입니다. "자동 실행"을 켜야 동작하고, 서버가 5분마다 확인하므로 몇 분 늦을 수 있습니다.',
     fields: [
       {
         key: 'frequency',
@@ -71,7 +71,7 @@ export const NODE_FIELDS = {
           : `매일 ${p.time}`,
   },
   webhook: {
-    help: '받을 주소는 Workflow를 서버에 저장(6단계)한 뒤 만들어집니다.',
+    help: '저장한 뒤 아래에서 받을 주소를 만들 수 있습니다. "자동 실행"을 켜야 주소로 시작됩니다. 받은 값은 {{input.body.이름}}, 주소 뒤 ?값은 {{input.query.이름}} 으로 씁니다.',
     fields: [
       {
         key: 'method',
@@ -110,7 +110,7 @@ export const NODE_FIELDS = {
     summary: (p) => (p.value ? `${p.value} 로 ${p.cases.length + 1}갈래` : ''),
   },
   http: {
-    help: '인증 키가 필요하면 9단계 Credentials에서 연결합니다. 여기에 키를 직접 넣지 마세요.',
+    help: '인증 키가 필요하면 Credentials 메뉴에 "HTTP 인증 헤더"로 등록하고 아래에서 고르세요. 여기에 키를 직접 넣지 마세요.',
     fields: [
       { key: 'method', label: '요청 방식', type: 'select', default: 'GET', options: METHODS },
       {
@@ -123,13 +123,14 @@ export const NODE_FIELDS = {
         pattern: { re: /^https?:\/\/\S+$/, message: 'http:// 또는 https:// 로 시작해야 합니다' },
       },
       { key: 'headers', label: '헤더 (JSON, 선택)', type: 'json', default: '', placeholder: '{ "Accept": "application/json" }' },
+      { key: 'credentialId', label: '인증 헤더 (선택)', type: 'credential', credType: 'httpHeader', default: '' },
       { key: 'body', label: '보낼 내용 (선택)', type: 'textarea', default: '', showIf: (p) => p.method !== 'GET' },
       { key: 'timeoutSeconds', label: '제한 시간 (초)', type: 'number', default: 30, min: 1, max: 300, required: true },
     ],
     summary: (p) => (p.url ? `${p.method} ${p.url}` : ''),
   },
   gas: {
-    help: 'Apps Script를 "웹 앱"으로 배포한 주소를 넣습니다. 연결 방식은 9단계에서 확정합니다.',
+    help: 'Apps Script를 "웹 앱"으로 배포한 주소를 넣습니다. Apps Script 쪽 코드 견본은 docs/GAS_TEMPLATE.md에 있습니다. 15초 안에 끝나는 작업만 기다립니다.',
     fields: [
       {
         key: 'url',
@@ -142,11 +143,12 @@ export const NODE_FIELDS = {
       },
       { key: 'functionName', label: '실행할 함수 이름 (선택)', type: 'text', default: '', placeholder: 'main' },
       { key: 'payload', label: '보낼 값 (JSON, 선택)', type: 'json', default: '' },
+      { key: 'credentialId', label: 'GAS 비밀값 (선택)', type: 'credential', credType: 'gasSecret', default: '' },
     ],
     summary: (p) => (p.functionName ? `함수 ${p.functionName}` : p.url ? 'Apps Script 웹 앱' : ''),
   },
   githubActions: {
-    help: 'GitHub 토큰은 9단계 Credentials에서 연결합니다.',
+    help: 'Credentials 메뉴에 "GitHub 토큰"을 등록하고 고르세요. 그 Workflow 파일에 workflow_dispatch 가 있어야 합니다. 끝날 때까지 상태를 확인합니다(최대 6시간).',
     fields: [
       {
         key: 'repo',
@@ -160,6 +162,7 @@ export const NODE_FIELDS = {
       { key: 'workflow', label: 'Workflow 파일', type: 'text', default: '', required: true, placeholder: 'deploy.yml' },
       { key: 'ref', label: '브랜치', type: 'text', default: 'main', required: true },
       { key: 'inputs', label: '입력값 (JSON, 선택)', type: 'json', default: '' },
+      { key: 'credentialId', label: 'GitHub 토큰', type: 'credential', credType: 'githubToken', default: '', required: true },
     ],
     summary: (p) => (p.repo ? `${p.repo}${p.workflow ? ` · ${p.workflow}` : ''}` : ''),
   },

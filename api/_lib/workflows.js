@@ -200,6 +200,8 @@ export async function updateWorkflow(db, userId, id, input = {}) {
   if (input.nodes !== undefined || input.edges !== undefined) {
     const graph = cleanGraph(input.nodes ?? wf.nodes, input.edges ?? wf.edges);
     Object.assign(changes, graph, { nodeCount: graph.nodes.length });
+    // 자동 실행 중인 Workflow를 검증 오류가 있는 모양으로 저장하면 자동 실행을 끈다 (9단계)
+    if (wf.status === 'active' && !validateWorkflow(graph.nodes, graph.edges).ok) changes.status = 'draft';
   }
 
   const updated = await workflows(db).findOneAndUpdate(
@@ -221,5 +223,6 @@ export async function deleteWorkflow(db, userId, id) {
   const { wf } = await loadWithRole(db, userId, id, 'edit');
   // 실행 기록도 함께 지운다
   await db.collection('executions').deleteMany({ workflowId: wf._id });
+  await db.collection('webhook_tokens').deleteMany({ workflowId: wf._id });
   await workflows(db).deleteOne({ _id: wf._id });
 }

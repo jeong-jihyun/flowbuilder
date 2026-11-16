@@ -10,6 +10,7 @@ import { loadWithRole } from './workflows.js';
 import { validateWorkflow } from '../../shared/validator.js';
 import { NODE_KIND_INFO } from '../../shared/nodeKinds.js';
 import { executeNode } from './engine/executors.js';
+import { loadSecret } from './credentials.js';
 
 export const RUN_LIMITS = {
   activePerWorkflow: 3, // 동시에 진행 중인 실행
@@ -46,6 +47,7 @@ function view(ex, { full = false } = {}) {
     workflowVersion: ex.workflowVersion,
     status: ex.status,
     triggerNodeId: ex.triggerNodeId,
+    source: ex.source || 'manual',
     startedBy: ex.startedBy,
     createdAt: ex.createdAt,
     finishedAt: ex.finishedAt,
@@ -90,6 +92,8 @@ export async function advanceExecution(db, _id, budgetMs) {
   }
   const steps = ex.steps;
   const queue = ex.queue;
+  // 인증정보는 이 실행의 그룹 것만 꺼낼 수 있다
+  const getCredential = (id, type) => loadSecret(db, ex.groupId, id, type);
   let status = 'running';
   let error = null;
   let resumeAt = null;
@@ -105,7 +109,7 @@ export async function advanceExecution(db, _id, budgetMs) {
 
     let result;
     try {
-      result = await executeNode(node, item.input, { state: step, now: clock(), deadline });
+      result = await executeNode(node, item.input, { state: step, now: clock(), deadline, getCredential });
     } catch (err) {
       result = { status: 'failed', error: err?.message || String(err) };
     }
@@ -114,6 +118,7 @@ export async function advanceExecution(db, _id, budgetMs) {
       // 기다리는 동안 실행 전체가 멈춘다 (지금 엔진은 한 줄로 처리)
       step.status = 'waiting';
       step.resumeAt = result.resumeAt;
+      if (result.state) step.runner = result.state;
       status = 'waiting';
       resumeAt = result.resumeAt;
       break;
@@ -121,6 +126,7 @@ export async function advanceExecution(db, _id, budgetMs) {
 
     step.finishedAt = new Date(clock());
     delete step.resumeAt;
+    delete step.runner;
     if (result.output !== undefined) step.output = truncate(result.output);
 
     if (result.status === 'failed') {
@@ -162,12 +168,10 @@ export async function advanceExecution(db, _id, budgetMs) {
   return executions(db).findOne({ _id });
 }
 
-// Run: 저장된 Workflow를 실행한다. 저장 안 된 화면 내용은 실행하지 않는다.
-export async function startExecution(db, userId, workflowId, body = {}) {
-  const { wf, role } = await loadWithRole(db, userId, workflowId, 'view');
-  if (!can(role, 'run')) throw new ApiError(403, 'FORBIDDEN');
-
-  const input = body.input === undefined ? {} : body.input;
+// 실행 하나를 만든다. 사람이 누른 Run, Webhook, 예약 실행이 모두 여기를 거친다 (9단계).
+// source: 'manual' | 'webhook' | 'schedule'. webhook·schedule은 그 Trigger 노드를 꼭 지정한다.
+export async function launchExecution(db, wf, { input: rawInput, triggerNodeId, startedBy, source = 'manual', budgetMs = RUN_LIMITS.budgetMs }) {
+  const input = rawInput === undefined ? {} : rawInput;
   if (input === null || typeof input !== 'object' || Array.isArray(input)) throw new ApiError(400, 'INVALID_INPUT', '{ } 모양의 JSON');
   if (JSON.stringify(input).length > RUN_LIMITS.inputBytes) throw new ApiError(400, 'INVALID_INPUT', '10KB까지');
 
@@ -178,8 +182,9 @@ export async function startExecution(db, userId, workflowId, body = {}) {
   // 시작할 Trigger: 고른 것 → 없으면 Manual → 없으면 첫 Trigger
   const triggers = wf.nodes.filter((n) => NODE_KIND_INFO[n.data.kind]?.category === 'trigger');
   const trigger =
-    triggers.find((n) => n.id === body.triggerNodeId) || triggers.find((n) => n.data.kind === 'manual') || triggers[0];
-  if (body.triggerNodeId && trigger.id !== body.triggerNodeId) throw new ApiError(400, 'INVALID_TRIGGER');
+    triggers.find((n) => n.id === triggerNodeId) || triggers.find((n) => n.data.kind === 'manual') || triggers[0];
+  if (triggerNodeId && trigger.id !== triggerNodeId) throw new ApiError(400, 'INVALID_TRIGGER');
+  if (source !== 'manual' && trigger.data.kind !== source) throw new ApiError(400, 'INVALID_TRIGGER');
 
   const active = await executions(db).countDocuments({ workflowId: wf._id, status: { $in: ACTIVE } });
   if (active >= RUN_LIMITS.activePerWorkflow) {
@@ -194,8 +199,9 @@ export async function startExecution(db, userId, workflowId, body = {}) {
     workflowVersion: wf.version,
     status: 'running',
     triggerNodeId: trigger.id,
+    source,
     input,
-    startedBy: userId,
+    startedBy,
     createdAt: now,
     updatedAt: now,
     finishedAt: null,
@@ -217,8 +223,37 @@ export async function startExecution(db, userId, workflowId, body = {}) {
     .toArray();
   if (old.length) await executions(db).deleteMany({ _id: { $in: old.map((o) => o._id) } });
 
-  const ex = await advanceExecution(db, insertedId, RUN_LIMITS.budgetMs);
+  return advanceExecution(db, insertedId, budgetMs);
+}
+
+// Run 버튼: 저장된 Workflow를 실행한다. 저장 안 된 화면 내용은 실행하지 않는다.
+export async function startExecution(db, userId, workflowId, body = {}) {
+  const { wf, role } = await loadWithRole(db, userId, workflowId, 'view');
+  if (!can(role, 'run')) throw new ApiError(403, 'FORBIDDEN');
+  const ex = await launchExecution(db, wf, { input: body.input, triggerNodeId: body.triggerNodeId, startedBy: userId });
   return view(ex, { full: true });
+}
+
+// 서버 주기 작업(9단계): 아무도 보고 있지 않은 실행을 이어서 진행한다.
+// 잠겨 있지 않고, 진행 중이거나 기다릴 시각이 지난 실행을 오래된 것부터 처리한다.
+export async function advanceDueExecutions(db, { budgetMs = 20_000, perExecutionMs = 5_000 } = {}) {
+  const started = Date.now();
+  const now = clock();
+  const due = await executions(db)
+    .find(
+      { lockUntil: { $lt: now }, $or: [{ status: 'running' }, { status: 'waiting', resumeAt: { $lte: now } }] },
+      { projection: { _id: 1 } }
+    )
+    .sort({ updatedAt: 1 })
+    .limit(20)
+    .toArray();
+  let advanced = 0;
+  for (const { _id } of due) {
+    if (Date.now() - started > budgetMs) break;
+    await advanceExecution(db, _id, perExecutionMs);
+    advanced++;
+  }
+  return { due: due.length, advanced };
 }
 
 // 상태 조회. 진행 중이고 처리할 차례면 조금 더 진행시킨 뒤 돌려준다.

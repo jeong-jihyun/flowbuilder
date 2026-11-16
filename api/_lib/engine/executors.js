@@ -39,8 +39,9 @@ export function compare(left, operator, right) {
   }
 }
 
-// state: 이 노드의 지난 기록(Delay가 다시 불렸을 때 쓰임). now: 현재 시각(ms)
-export async function executeNode(node, input, { state = {}, now = Date.now(), deadline } = {}) {
+// state: 이 노드의 지난 기록(Delay·실행기가 다시 불렸을 때 쓰임). now: 현재 시각(ms)
+// getCredential(id, type): 이 Workflow 그룹의 인증정보를 꺼낸다 (9단계)
+export async function executeNode(node, input, { state = {}, now = Date.now(), deadline, getCredential } = {}) {
   const params = paramsOf(node);
   const ctx = { input };
 
@@ -84,7 +85,8 @@ export async function executeNode(node, input, { state = {}, now = Date.now(), d
     case 'http':
     case 'gas':
     case 'githubActions':
-      return runExternal(node.data.kind, params, ctx, { deadline });
+      // 실행기가 지난번에 남긴 값(예: GitHub 실행 번호)은 step.runner 에 있다
+      return runExternal(node.data.kind, params, ctx, { deadline, now, state: state.runner || {}, getCredential });
 
     default:
       return { status: 'failed', error: `실행할 수 없는 노드 종류입니다: ${node.data.kind}` };

@@ -46,7 +46,7 @@ export async function checkTarget(rawUrl, resolve = lookup) {
   return '';
 }
 
-export async function runHttp(params, ctx, { deadline } = {}) {
+export async function runHttp(params, ctx, { deadline, getCredential } = {}) {
   const url = String(resolveString(params.url, ctx) ?? '');
   const problem = await checkTarget(url);
   if (problem) return { status: 'failed', error: problem };
@@ -58,6 +58,12 @@ export async function runHttp(params, ctx, { deadline } = {}) {
     } catch {
       return { status: 'failed', error: '헤더(JSON)를 읽을 수 없습니다.' };
     }
+  }
+  // 인증 헤더는 Credentials에서 꺼내 붙인다 (Workflow에는 비밀값이 남지 않음)
+  if (params.credentialId) {
+    const cred = await getCredential(params.credentialId, 'httpHeader');
+    if (!cred) return { status: 'failed', error: '인증 헤더(인증정보)를 찾을 수 없습니다. Credentials 메뉴를 확인하세요.' };
+    headers[cred.headerName] = cred.secret;
   }
   const body = params.method !== 'GET' && params.body ? resolveString(params.body, ctx) : undefined;
 

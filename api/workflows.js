@@ -8,6 +8,9 @@
 // DELETE /api/workflows/:id          삭제 (Editor 이상)
 // POST   /api/workflows/:id/validate 저장된 버전 검증 (멤버)
 // POST   /api/workflows/:id/run      실행 시작 { input?, triggerNodeId? } (Owner·Admin·Editor, 8단계)
+// POST   /api/workflows/:id/activate 자동 실행 켜기·끄기 { active } (Editor 이상, 9단계)
+// GET    /api/workflows/:id/webhook?nodeId=   Webhook 주소 보기 (Editor 이상, 9단계)
+// POST   /api/workflows/:id/webhook  Webhook 주소 새로 만들기 { nodeId } (Editor 이상, 9단계)
 import { apiHandler, methodNotAllowed } from './_lib/http.js';
 import { ApiError } from './_lib/errors.js';
 import {
@@ -19,10 +22,24 @@ import {
   validateSavedWorkflow,
 } from './_lib/workflows.js';
 import { startExecution } from './_lib/executions.js';
+import { createWebhookPath, getWebhookPath, setWorkflowActive } from './_lib/automation.js';
 
 export async function routeWorkflows({ db, userId, method, parts, query = {}, body = {} }) {
   const [id, sub, ...rest] = parts;
-  if (rest.length || (sub !== undefined && sub !== 'validate' && sub !== 'run')) throw new ApiError(404, 'NOT_FOUND');
+  const SUBS = ['validate', 'run', 'activate', 'webhook'];
+  if (rest.length || (sub !== undefined && !SUBS.includes(sub))) throw new ApiError(404, 'NOT_FOUND');
+
+  if (sub === 'activate') {
+    if (method !== 'POST') throw methodNotAllowed('POST');
+    return { status: 200, body: await setWorkflowActive(db, userId, id, body.active) };
+  }
+  if (sub === 'webhook') {
+    const nodeId = method === 'GET' ? query.nodeId : body.nodeId;
+    if (typeof nodeId !== 'string') throw new ApiError(400, 'NODE_ID_REQUIRED');
+    if (method === 'GET') return { status: 200, body: { path: await getWebhookPath(db, userId, id, nodeId) } };
+    if (method === 'POST') return { status: 201, body: { path: await createWebhookPath(db, userId, id, nodeId) } };
+    throw methodNotAllowed('GET, POST');
+  }
 
   if (sub === 'run') {
     if (method !== 'POST') throw methodNotAllowed('POST');

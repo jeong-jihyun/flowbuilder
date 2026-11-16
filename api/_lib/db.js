@@ -17,6 +17,12 @@ async function ensureIndexes(db) {
     // Workflow별·그룹별 최근 실행 목록
     db.collection('executions').createIndex({ workflowId: 1, createdAt: -1 }),
     db.collection('executions').createIndex({ groupId: 1, createdAt: -1 }),
+    // 9단계: 인증정보 목록, Webhook 토큰 찾기, 주기 작업이 찾는 실행·예약
+    db.collection('credentials').createIndex({ groupId: 1 }),
+    db.collection('webhook_tokens').createIndex({ tokenHash: 1 }, { unique: true }),
+    db.collection('webhook_tokens').createIndex({ workflowId: 1, nodeId: 1 }),
+    db.collection('executions').createIndex({ status: 1, resumeAt: 1 }),
+    db.collection('workflows').createIndex({ status: 1 }),
   ]);
 }
 
