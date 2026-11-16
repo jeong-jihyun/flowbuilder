@@ -1,0 +1,27 @@
+/* 편집기 전용 모양. React Flow 기본 스타일 위에 덧씌운다. */
+.fb-node {
+  width: 200px;
+  padding: 10px 12px;
+  border: 2px solid;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.react-flow__handle {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border: 2px solid #64748b;
+}
+
+/* 손가락으로 쓰는 기기에서는 연결점을 크게 해서 잡기 쉽게 한다 */
+@media (pointer: coarse) {
+  .react-flow__handle {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.react-flow__edge-textbg {
+  fill: #f5f6f8;
+}

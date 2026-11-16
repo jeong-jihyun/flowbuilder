@@ -1,9 +1,10 @@
 # FlowBuilder 통합 설계 문서
 
-v1.2 · 2026-11-16
+v1.3 · 2026-11-16
 
 | 버전 | 바뀐 점 |
 | --- | --- |
+| v1.3 | 노드 저장 형태 확정(6.1: `type`은 분류, `data.kind`는 노드 종류), If/Else·Switch 출구 정의(4.1) |
 | v1.2 | 역할 부여 규칙 추가(8.2), DB 연결을 3단계로 앞당김(12장) |
 | v1.1 | Clerk 패키지 이름 반영(9장), DB 용량 정책 확정(14장) |
 | v1.0 | 최초 작성 |
@@ -187,6 +188,20 @@ flowchart TB
 | Action    | GitHub Actions     | GitHub Workflow 실행 |
 | Action    | Data Transform     | 데이터 변환             |
 | Action    | Delay              | 지정 시간 대기           |
+
+노드 출구 (v1.3 추가, 4단계 구현)
+
+* Trigger는 들어오는 연결점이 없습니다.
+* If / Else는 출구가 YES·NO 두 개입니다. 연결선에 출구 이름이 표시됩니다.
+* Switch는 지금 출구 3개(1, 2, 기본)로 고정입니다. 개수는 5단계(속성)에서 사용자가 정하게 바꿉니다.
+* 나머지 노드는 출구가 하나입니다.
+
+노드 저장 형태 (v1.3 확정)
+
+* `type`: 분류 (`trigger` / `condition` / `action`) — 6.1 예시와 같음
+* `data.kind`: 노드 종류 (`manual`, `schedule`, `webhook`, `ifElse`, `switch`, `http`, `gas`, `githubActions`, `transform`, `delay`)
+* `data.label`: 화면에 보이는 노드 이름
+* 연결선의 `sourceHandle`: 어느 출구에서 나왔는지 (`yes`, `no`, `case_1` …, 출구가 하나면 null)
 
 ### 4.2 사용자 제어 범위
 

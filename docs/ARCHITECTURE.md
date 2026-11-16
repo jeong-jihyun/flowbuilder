@@ -3,7 +3,7 @@
 목표 구조는 [FLOWBUILDER_DESIGN.md](FLOWBUILDER_DESIGN.md) 2장을 따릅니다.
 이 문서는 **지금 실제로 구현된 것**만 적습니다. 구현이 바뀌면 이 문서도 같이 고칩니다.
 
-## 현재 구현 (v0.3.0, 3단계)
+## 현재 구현 (v0.4.0, 4단계)
 
 ```mermaid
 flowchart LR
@@ -11,7 +11,8 @@ flowchart LR
     FRONT --> CLERK["Clerk 로그인 화면"]
     CLERK -->|로그인 성공| SHELL["AppShell: 상단바 + 메뉴"]
     SHELL --> DASH["Dashboard (예시 데이터)"]
-    SHELL --> EDITOR["WorkflowEditor (React Flow 미리보기)"]
+    SHELL --> EDITOR["WorkflowEditor (React Flow 편집기)"]
+    EDITOR --> DRAFT[("localStorage 임시 저장")]
     USER --> API["/api/health (누구나)"]
     DASH -->|토큰 첨부| ME["/api/me"]
     ME --> AUTH["api/_lib/auth.js: 토큰 검증"]
@@ -31,7 +32,15 @@ flowchart LR
 | 화면 틀 | `src/layout/AppShell.jsx` | 구현 |
 | 메뉴 목록 | `src/menu.js` | 구현 |
 | Dashboard | `src/pages/Dashboard.jsx` | 화면만 (예시 데이터) |
-| Workflow Editor | `src/pages/WorkflowEditor.jsx` | 미리보기 (이동·연결만) |
+| Workflow Editor | `src/pages/WorkflowEditor.jsx` | 구현 (추가·연결·재연결·삭제·실행 취소, 저장은 임시) |
+| 노드 목록(종류·출구) | `src/editor/nodeCatalog.js` | 구현 (설계 4.1의 10종) |
+| 노드 모양 | `src/editor/WorkflowNode.jsx`, `src/editor/editor.css` | 구현 |
+| Node Palette | `src/editor/NodePalette.jsx` | 구현 (검색, 누르기·끌어 놓기) |
+| 상단 Toolbar | `src/editor/EditorToolbar.jsx` | 구현 (Save·Validate·Run·Publish는 비활성) |
+| 실행 취소·다시 실행 | `src/editor/useHistory.js` | 구현 (최근 50번) |
+| 임시 저장 | `src/editor/draftStorage.js` | 구현 (6단계에서 서버 저장으로 교체) |
+| Properties 패널 | - | 미구현 (5단계) |
+| 하단 실행 결과 패널 | - | 미구현 (8·10단계) |
 | 상태 확인 API | `api/health.js` | 구현 |
 | 로그인 화면 | `src/pages/SignInPage.jsx` | 구현 (실제 키 검증 전) |
 | 로그인 여부에 따른 화면 전환 | `src/App.jsx`, `src/main.jsx` | 구현 |
@@ -53,6 +62,12 @@ flowchart LR
 | --- | --- |
 | React 18로 고정 | 설계 문서의 확정 기술 스택 |
 | 편집기 화면만 따로 불러오기(lazy) | React Flow가 무거워서 첫 화면을 가볍게 하려고 |
+| 노드 `type`은 분류, 종류는 `data.kind` | 설계 6.1 예시(`type: "trigger"`)를 지키면서 10종을 구분하려고 |
+| 연결선 모양(꺾은 선·화살표)은 화면 설정으로만 | 저장 데이터를 설계 6.1 모양 그대로 두려고 |
+| 6단계 전까지 브라우저에 임시 저장 | 화면을 옮기거나 새로고침해도 그리던 흐름이 사라지지 않게 |
+| 실행 취소는 "바꾸기 직전 모습"을 쌓는 방식 | 끌기·추가·삭제·연결·재연결 모두 같은 방법으로 되돌리기 위해 |
+| 노드 추가 시 빈자리를 찾아 놓고 화면을 그쪽으로 옮김 | 가운데에 겹쳐 쌓이거나 화면 밖에 생겨 안 보이는 문제를 막기 위해 |
+| 휴대폰: 노드 목록은 아래에서 올라오는 창, 미니맵 숨김, 연결점 크게 | 설계 3.3 모바일 요구, 손가락으로 연결점을 잡기 쉽게 |
 | 모바일은 메뉴를 Drawer로 전환 (기준: 화면 폭 900px) | 설계 문서 3.3 모바일 요구 |
 | `vercel.json`에서 `/api/`를 뺀 모든 주소를 `index.html`로 연결 | 새로고침해도 화면이 뜨게 하려고 |
 | Clerk 패키지는 `@clerk/react`, `@clerk/backend` | 예전 `@clerk/clerk-react`는 지원 종료 |
