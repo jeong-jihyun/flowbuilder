@@ -9,12 +9,13 @@
 
 접속 주소: https://flowbuilder-roan.vercel.app
 
-**7단계(Workflow 검증) 완료** — 전체 12단계 중 7단계. Validate 버튼으로 시작점·연결·순환·필수 설정 문제를 찾고, 결과를 누르면 그 노드로 이동합니다.
+**8단계(실행 엔진) 완료** — 전체 12단계 중 8단계. 저장한 Workflow를 Run으로 실행하고, 노드별 진행 상태와 결과를 봅니다. 조건 분기·데이터 변환·대기·HTTP 요청이 실제로 동작합니다. GAS·GitHub Actions 연결은 9단계.
 
 | 되는 것 | 아직 안 되는 것 |
 | --- | --- |
-| 화면 틀(상단바, 메뉴, PC/모바일 전환) | 실행 (8단계) |
-| Dashboard: Workflow 수·최근 Workflow (실행 수는 8단계 이후) | |
+| 화면 틀(상단바, 메뉴, PC/모바일 전환) | GAS·GitHub Actions·Webhook 받기, 예약 실행 (9단계) |
+| Dashboard: Workflow 수·최근 Workflow·실행 수·실패 수 | 실행 기록 화면·30일 자동 삭제 (10단계) |
+| 실행: Run(입력값·Trigger 선택), 진행 상태·노드별 결과·취소, 실행 기록 (`/api/workflows/:id/run`, `/api/executions`) | |
 | Workflow 저장·목록·이름 바꾸기·삭제, 동시 저장 충돌 알림 (`/api/workflows`) | |
 | Workflow 편집기: 노드 10종 추가(목록·끌어 놓기), 연결·재연결, 삭제, 실행 취소, 휴대폰 화면 | |
 | Workflow 검증: Validate 버튼, 고칠 때마다 다시 검사, 문제 노드 표시 (`POST /api/workflows/:id/validate`) | |
@@ -57,10 +58,14 @@ flowbuilder/
 │   │   ├── roles.js            역할 권한표
 │   │   ├── groups.js           그룹·멤버 처리
 │   │   ├── workflows.js        Workflow 저장·검사
+│   │   ├── executions.js       실행 엔진 (나눠서 진행·잠금·기록)
+│   │   ├── engine/             노드별 실행, {{input}} 바꾸기
+│   │   ├── runners/            Runner Adapter (HTTP, 9단계: GAS·GitHub)
 │   │   ├── http.js             API 공통 처리 (로그인·DB·오류)
 │   │   └── clerkUsers.js       Clerk 사용자 조회
 │   ├── groups.js               /api/groups 전체
-│   ├── workflows.js            /api/workflows 전체
+│   ├── workflows.js            /api/workflows 전체 (실행 시작 포함)
+│   ├── executions.js           /api/executions 전체
 │   ├── health.js
 │   └── me.js
 ├── src/
@@ -91,6 +96,7 @@ flowbuilder/
 
 ## 주요 변경 사항
 
+- 2026-11-16 · v0.8.0 · 8단계 실행 엔진
 - 2026-11-16 · v0.7.0 · 7단계 Workflow 검증 (Validator)
 - 2026-11-16 · v0.6.0 · 6단계 Workflow 저장 (MongoDB)
 - 2026-11-16 · v0.5.0 · 5단계 노드 속성 관리 (Properties)

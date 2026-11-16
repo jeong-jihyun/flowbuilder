@@ -3,7 +3,7 @@
 목표 구조는 [FLOWBUILDER_DESIGN.md](FLOWBUILDER_DESIGN.md) 2장을 따릅니다.
 이 문서는 **지금 실제로 구현된 것**만 적습니다. 구현이 바뀌면 이 문서도 같이 고칩니다.
 
-## 현재 구현 (v0.7.0, 7단계)
+## 현재 구현 (v0.8.0, 8단계)
 
 ```mermaid
 flowchart LR
@@ -22,6 +22,15 @@ flowchart LR
     WSVC --> DB2[("MongoDB: workflows")]
     EDITOR -->|Validate| VAL["shared/validator.js"]
     WSVC -->|/validate| VAL
+    EDITOR -->|Run| RUN["/api/workflows/:id/run"]
+    RUN --> ORCH["api/_lib/executions.js: 실행 엔진"]
+    ORCH --> VAL
+    ORCH --> EXEC["engine/executors.js: 노드별 실행"]
+    EXEC --> ADAPTER["runners/: Runner Adapter"]
+    ADAPTER -->|HTTP| EXT["바깥 API"]
+    ORCH --> DB3[("MongoDB: executions")]
+    EDITOR -->|상태 물어보기| EAPI["/api/executions/:id"]
+    EAPI --> ORCH
     USER --> API["/api/health (누구나)"]
     DASH -->|토큰 첨부| ME["/api/me"]
     ME --> AUTH["api/_lib/auth.js: 토큰 검증"]
@@ -74,7 +83,11 @@ flowchart LR
 | 역할 권한표 | `api/_lib/roles.js` (화면 표시용 이름은 `src/lib/roles.js`) | 구현 |
 | Clerk 사용자 조회 | `api/_lib/clerkUsers.js` | 구현 |
 | DB 연결 | `api/_lib/db.js` | 구현 (MongoDB Atlas) |
-| 실행 엔진 / Runner Adapter | - | 미구현 (8~9단계) |
+| 실행 엔진 | `api/_lib/executions.js` | 구현 (나눠서 진행, 잠금, 취소, 기록 정리) |
+| 노드별 실행·입력값 바꾸기 | `api/_lib/engine/executors.js`, `api/_lib/engine/template.js` | 구현 |
+| Runner Adapter | `api/_lib/runners/index.js`, `api/_lib/runners/http.js` | HTTP 구현 (내부 주소 막기). GAS·GitHub는 9단계 |
+| 실행 API | `api/executions.js`, `api/workflows.js`(run) | 구현 |
+| 실행 결과 창·Run 창·노드 실행 표시 | `src/editor/ExecutionPanel.jsx`, `src/editor/RunDialog.jsx`, `src/editor/runContext.js` | 구현 |
 
 ## 정한 것과 이유
 
@@ -100,6 +113,12 @@ flowchart LR
 | 검증·노드 규칙을 `shared/`에 두고 화면과 서버가 같이 씀 | 화면에서 통과한 흐름이 서버(8단계 실행 전)에서 다르게 판단되지 않게. `shared/`에는 화면 라이브러리를 넣지 않음 |
 | 검증 결과 창이 열려 있으면 고칠 때마다 다시 검사 | 고치고 다시 Validate를 누를 필요 없이 바로 확인 |
 | 노드 테두리는 CSS 파일이 아니라 컴포넌트에서만 정함 | CSS 파일의 `border`가 선택·검증 표시 색을 덮어쓰던 문제(4단계부터) 해결 |
+| 실행을 한 번에 끝내지 않고 요청마다 정해진 시간만 진행 | Vercel 함수 시간 제한. 기다리는 노드(Delay)·외부 실행기(9단계)도 같은 방식으로 이어 감 |
+| 실행 하나를 `lockUntil`로 잠금 | 화면 두 개가 동시에 물어봐도 노드가 두 번 실행되지 않게 |
+| 실행할 때 Workflow 복사본 사용 | 실행 중에 편집·저장해도 진행 중인 실행이 바뀌지 않게 |
+| 저장한 버전만 실행, 실행 전 서버 검증 | 화면에만 있는 내용이 실행되거나, 고장 난 흐름이 실행되지 않게 |
+| HTTP 요청 전 주소 확인 + redirect 안 따라감 | 서버를 거쳐 내부망·클라우드 메타데이터를 들여다보는 공격(SSRF) 막기 |
+| 실행 결과 창과 검증 결과 창은 아래쪽 한 자리를 번갈아 씀 | 작은 화면에서 캔버스가 사라지지 않게 |
 | 모바일은 메뉴를 Drawer로 전환 (기준: 화면 폭 900px) | 설계 문서 3.3 모바일 요구 |
 | `vercel.json`에서 `/api/`를 뺀 모든 주소를 `index.html`로 연결 | 새로고침해도 화면이 뜨게 하려고 |
 | Clerk 패키지는 `@clerk/react`, `@clerk/backend` | 예전 `@clerk/clerk-react`는 지원 종료 |

@@ -52,7 +52,7 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 | group_members | 사용자별 그룹 권한 | 3 (구현) |
 | workflows | Workflow 정의, nodes, edges | 6 (구현) |
 | workflow_triggers | 실행 Trigger 설정 | 8 |
-| executions | 실행 이력 및 상태 | 8 |
+| executions | 실행 이력 및 상태 | 8 (구현) |
 | execution_logs | 노드별 실행 로그 | 10 |
 | credentials | 외부 연동 인증정보 (평문 저장 금지) | 9 |
 
@@ -84,6 +84,28 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 서버에 저장하기 전의 "새 Workflow"(/editor)는 브라우저(localStorage `flowbuilder.editorDraft.v1`)에 같은 모양으로 임시 저장하고, 서버에 저장하면 지웁니다. 서버는 위치를 정수로 반올림해 저장합니다.
 
 7단계(검증)는 DB 구조를 바꾸지 않았습니다. 검증 결과는 저장하지 않고 매번 계산합니다.
+
+### executions (8단계)
+
+| 필드 | 형식 | 설명 |
+| --- | --- | --- |
+| `_id` | ObjectId | 실행 ID |
+| `workflowId`, `groupId` | ObjectId | 실행한 Workflow와 그 그룹 |
+| `workflowName`, `workflowVersion` | string, number | 실행할 때의 이름·버전 |
+| `status` | string | `running` / `waiting` / `success` / `failed` / `cancelled` (`pending`·`retrying`은 아직 안 씀) |
+| `triggerNodeId` | string | 시작한 Trigger |
+| `input` | object | Run 창에서 넣은 값 (10KB까지) |
+| `steps` | array | 노드별 기록 `{ nodeId, label, kind, status, startedAt, finishedAt, output?, error?, branch?, resumeAt? }`. output은 2KB까지 (넘으면 `{ _truncated, preview }`) |
+| `error` | string | 실패 이유 (어느 노드에서) |
+| `resumeAt` | number(ms) | 기다리는 중이면 다시 진행할 시각 |
+| `lockUntil` | number(ms) | 처리 중 잠금. 이 시각 전에는 다른 요청이 처리하지 않음 |
+| `graph`, `queue` | object, array | 진행 중일 때만: 시작할 때의 nodes·edges 복사본, 다음에 처리할 노드. 끝나면 지움 |
+| `startedBy` | string | Clerk 사용자 ID |
+| `createdAt`, `updatedAt`, `finishedAt` | Date | |
+
+인덱스: `{ workflowId: 1, createdAt: -1 }`, `{ groupId: 1, createdAt: -1 }`
+
+용량: Workflow당 최근 50개만 남기고 오래된 것은 실행을 시작할 때 지웁니다. 1건은 대개 수 KB (노드 결과 2KB × 노드 수가 최대). 노드별 로그를 따로 두는 `execution_logs`와 30일 자동 삭제는 10단계.
 
 ## 용량 정책 (2026-11-16 확정)
 

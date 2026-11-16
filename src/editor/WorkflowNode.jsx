@@ -5,6 +5,8 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { CATEGORIES, NODE_KINDS, outputsOf } from './nodeCatalog.js';
 import { countProblems, summaryOf } from '../../shared/nodeFields.js';
 import { useNodeIssue } from './validationContext.js';
+import { useNodeRunStatus } from './runContext.js';
+import { StepIcon } from './ExecutionPanel.jsx';
 
 // 캔버스에 그려지는 노드 한 개.
 // 위쪽 점(들어오는 선)은 Trigger에는 없다. 아래쪽 점(나가는 선)은 노드 종류마다 개수가 다르다.
@@ -15,6 +17,8 @@ function WorkflowNode({ id, data, selected }) {
   const outputKey = outputs.map((o) => o.id).join('|');
   // 검증(Validate)에서 문제가 나온 노드는 빨강(오류)·주황(경고) 테두리
   const issue = useNodeIssue(id);
+  // 실행 결과 창을 보고 있으면 노드마다 실행 상태 아이콘
+  const runStatus = useNodeRunStatus(id);
 
   // Switch 갈래가 늘거나 줄면 React Flow에 연결점이 바뀌었다고 알려야 선이 제자리에 붙는다
   const updateNodeInternals = useUpdateNodeInternals();
@@ -43,6 +47,7 @@ function WorkflowNode({ id, data, selected }) {
       sx={{
         borderColor: issue === 'error' ? 'error.main' : issue === 'warning' ? 'warning.main' : selected ? category.color : 'divider',
         boxShadow: selected ? `0 0 0 2px ${category.color}40` : 1,
+        opacity: runStatus === 'skipped' ? 0.55 : 1,
         borderWidth: 2,
         borderStyle: issue ? 'dashed' : 'solid',
         minWidth: outputs.length > 3 ? outputs.length * 52 : undefined,
@@ -76,6 +81,7 @@ function WorkflowNode({ id, data, selected }) {
         {problems > 0 && (
           <WarningAmberIcon fontSize="small" color="warning" titleAccess={`설정 필요 ${problems}곳`} />
         )}
+        {runStatus && <StepIcon status={runStatus} />}
       </Box>
 
       {(summary || problems > 0) && (

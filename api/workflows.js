@@ -7,6 +7,7 @@
 // PUT    /api/workflows/:id          저장 { version, name?, description?, nodes?, edges? } (Editor 이상)
 // DELETE /api/workflows/:id          삭제 (Editor 이상)
 // POST   /api/workflows/:id/validate 저장된 버전 검증 (멤버)
+// POST   /api/workflows/:id/run      실행 시작 { input?, triggerNodeId? } (Owner·Admin·Editor, 8단계)
 import { apiHandler, methodNotAllowed } from './_lib/http.js';
 import { ApiError } from './_lib/errors.js';
 import {
@@ -17,10 +18,16 @@ import {
   updateWorkflow,
   validateSavedWorkflow,
 } from './_lib/workflows.js';
+import { startExecution } from './_lib/executions.js';
 
 export async function routeWorkflows({ db, userId, method, parts, query = {}, body = {} }) {
   const [id, sub, ...rest] = parts;
-  if (rest.length || (sub !== undefined && sub !== 'validate')) throw new ApiError(404, 'NOT_FOUND');
+  if (rest.length || (sub !== undefined && sub !== 'validate' && sub !== 'run')) throw new ApiError(404, 'NOT_FOUND');
+
+  if (sub === 'run') {
+    if (method !== 'POST') throw methodNotAllowed('POST');
+    return { status: 201, body: { execution: await startExecution(db, userId, id, body) } };
+  }
 
   if (sub === 'validate') {
     if (method !== 'POST') throw methodNotAllowed('POST');

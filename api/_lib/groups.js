@@ -132,11 +132,12 @@ export async function updateGroup(db, userId, id, input = {}) {
   return groupView(group, membership.role);
 }
 
-// 그룹 삭제: Owner만. 멤버 기록과 그룹의 Workflow도 함께 지운다.
+// 그룹 삭제: Owner만. 멤버 기록, 그룹의 Workflow와 실행 기록도 함께 지운다.
 export async function deleteGroup(db, userId, id) {
   const groupId = toObjectId(id);
   const membership = await requireMembership(db, groupId, userId, 'view');
   if (membership.role !== 'owner') throw new ApiError(403, 'FORBIDDEN');
+  await db.collection('executions').deleteMany({ groupId });
   await db.collection('workflows').deleteMany({ groupId });
   await members(db).deleteMany({ groupId });
   await groups(db).deleteOne({ _id: groupId });

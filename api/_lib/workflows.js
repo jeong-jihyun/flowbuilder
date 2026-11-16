@@ -113,7 +113,7 @@ function view(wf, role, { full, groupName } = {}) {
 }
 
 // Workflow 하나와 내 역할. 그룹 멤버가 아니면 Workflow가 있다는 사실도 알리지 않는다(404).
-async function loadWithRole(db, userId, id, action) {
+export async function loadWithRole(db, userId, id, action) {
   const _id = toObjectId(id, 'WORKFLOW_NOT_FOUND');
   const wf = await workflows(db).findOne({ _id });
   if (!wf) throw new ApiError(404, 'WORKFLOW_NOT_FOUND');
@@ -219,5 +219,7 @@ export async function validateSavedWorkflow(db, userId, id) {
 
 export async function deleteWorkflow(db, userId, id) {
   const { wf } = await loadWithRole(db, userId, id, 'edit');
+  // 실행 기록도 함께 지운다
+  await db.collection('executions').deleteMany({ workflowId: wf._id });
   await workflows(db).deleteOne({ _id: wf._id });
 }

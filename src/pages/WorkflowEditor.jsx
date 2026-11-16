@@ -30,6 +30,7 @@ export default function WorkflowEditor() {
         onSave={AUTH_ENABLED ? onSave : undefined}
         alwaysSavable
         resetGraph={EXAMPLE}
+        runTip="서버에 저장한 Workflow만 실행할 수 있습니다. 먼저 Save 하세요."
         header={
           <>
             <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700 }}>

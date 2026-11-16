@@ -44,12 +44,17 @@ export default function Dashboard() {
   // null: 불러오는 중, 배열: 내 Workflow 목록
   const [workflows, setWorkflows] = useState(null);
   const [failed, setFailed] = useState(false);
+  // 실행 개수 (8단계)
+  const [runCounts, setRunCounts] = useState(null);
 
   useEffect(() => {
     if (!AUTH_ENABLED) return;
     api('/workflows').then((r) => {
       if (r.ok) setWorkflows(r.body.workflows);
       else setFailed(true);
+    });
+    api('/executions').then((r) => {
+      if (r.ok) setRunCounts(r.body.counts);
     });
   }, [api]);
 
@@ -70,9 +75,8 @@ export default function Dashboard() {
 
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, mb: 3 }}>
         <Stat label="Workflows" value={count} note="내가 속한 그룹 전체" />
-        {/* 실행 기록은 8단계(실행 엔진)부터 생긴다 */}
-        <Stat label="Executions" value="–" note="실행 기능(8단계) 이후 표시" />
-        <Stat label="Failures" value="–" note="실행 기능(8단계) 이후 표시" />
+        <Stat label="Executions" value={runCounts ? runCounts.total : '–'} note="남아 있는 실행 기록 (Workflow마다 최근 50개)" />
+        <Stat label="Failures" value={runCounts ? runCounts.failed : '–'} note="그중 실패한 실행" />
       </Box>
 
       <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>

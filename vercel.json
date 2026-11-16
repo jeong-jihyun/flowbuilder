@@ -1,7 +1,12 @@
 {
+  "functions": {
+    "api/workflows.js": { "maxDuration": 30 },
+    "api/executions.js": { "maxDuration": 30 }
+  },
   "rewrites": [
     { "source": "/api/groups/(.*)", "destination": "/api/groups?path=$1" },
     { "source": "/api/workflows/(.*)", "destination": "/api/workflows?path=$1" },
+    { "source": "/api/executions/(.*)", "destination": "/api/executions?path=$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

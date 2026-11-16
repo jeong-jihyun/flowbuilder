@@ -11,6 +11,62 @@
 
 ---
 
+## 2026-11-16 · v0.8.0 · 8단계 실행 엔진 (Execution Orchestrator)
+
+| 항목 | 내용 |
+| --- | --- |
+| 변경일 | 2026-11-16 |
+| 작업자 | Claude (AI), 요청: 정지현 |
+| 변경 목적 | 설계 문서 12장 개발 순서의 8단계. 7.1 실행 흐름, 7.2 실행 상태, 2장 Execution Orchestrator·Runner Adapter, 3.2 Run 버튼·하단 실행 결과 |
+| 변경 파일 | 신규: `api/executions.js`, `api/_lib/executions.js`, `api/_lib/engine/executors.js`, `api/_lib/engine/template.js`, `api/_lib/runners/index.js`, `api/_lib/runners/http.js`, `src/editor/ExecutionPanel.jsx`, `src/editor/RunDialog.jsx`, `src/editor/runContext.js` / 수정: `api/workflows.js`(run), `api/_lib/workflows.js`(권한 확인 공개, 삭제 시 실행 기록 삭제), `api/_lib/groups.js`(그룹 삭제 시 실행 기록 삭제), `api/_lib/db.js`(인덱스), `vercel.json`(함수 30초, 다시쓰기), `src/editor/FlowEditor.jsx`, `src/editor/EditorToolbar.jsx`, `src/editor/WorkflowNode.jsx`, `src/pages/WorkflowDetail.jsx`, `src/pages/WorkflowEditor.jsx`, `src/pages/Dashboard.jsx`, `src/lib/api.js`, `package.json`, `package-lock.json`, `README.md`, `docs/*` |
+| 영향 범위 | 저장된 Workflow 화면(Run, 실행 결과 창), Dashboard 실행 수, 새 API `/api/workflows/:id/run`·`/api/executions`, 새 컬렉션 `executions`, Workflow·그룹 삭제(실행 기록도 삭제). HTTP Request 노드가 실제로 바깥에 요청을 보냄 |
+| 배포 상태 | 배포 전 |
+| 롤백 방법 | Vercel에서 이전 배포(커밋 30da20e)로 되돌리기, 또는 `git revert`. `executions` 컬렉션은 남지만 이전 버전은 읽지 않으므로 영향 없음 |
+
+설계와 달라진 점 (설계 문서 v1.7에 반영함)
+
+| 항목 | 설계 | 구현 | 이유 |
+| --- | --- | --- | --- |
+| 실행 방식 | 정의 없음 | 요청마다 정해진 시간만 진행하고 저장, 다음 요청에서 이어 감 | Vercel 함수 시간 제한 |
+| 진행시키는 주체 | 정의 없음 | 실행 결과 창이 상태를 물어볼 때 | 서버 주기 작업이 아직 없음. 아무도 안 보면 Delay 뒤가 멈춤(9단계 이후 예약 실행과 함께 해결) |
+| HTTP Request 실행 위치 | 외부 실행기(Runner)로 위임 | 서버 함수에서 바로 (15초까지) | 짧은 REST 호출은 실행기 없이 가능. 긴 작업은 9단계 GAS·GitHub로 |
+| 실행 기록 보관 | 정의 없음 | Workflow당 최근 50개 | 무료 DB 512MB (30일 자동 삭제는 10단계) |
+| 모이는 노드 | 정의 없음 | 먼저 도착한 값으로 한 번만 실행 | 단순하고 예측 가능하게. 여러 값을 합치는 노드는 나중에 |
+| retrying 상태 | 7.2에 있음 | 아직 안 씀 | 재시도 기능은 아직 없음 |
+
+검증 결과
+
+| 구분 | 항목 | 결과 |
+| --- | --- | --- |
+| 수행함 | `npm run build` | 통과 |
+| 수행함 | 실행 엔진 57개 항목 (메모리 MongoDB): 입력값 바꾸기 7, 조건 계산 4, HTTP 주소 막기 7(localhost·127.0.0.1·사설망·메타데이터·사설 IP로 풀리는 이름·ftp·공개 주소), If/Else 양쪽 갈래·건너뜀·변환 결과, Switch 일치·기본, 미연결 실행기 실패와 뒤 노드 건너뜀, 검증 오류 시 400·기록 없음, Viewer 실행 403·기록 보기 가능, 비멤버 404, 입력값 검사, Delay 대기 → 시각 전 대기 유지 → 시각 후 이어서 성공, 동시 진행 3개 제한, 취소·다시 취소 409·취소 후 진행 안 함, 동시에 세 요청이 처리해도 노드 한 번씩(잠금), HTTP 성공·보낸 주소·헤더·방식·redirect 안 따라감, HTTP 500 실패, 입력값으로 내부 주소를 넣어도 막고 요청 안 보냄, 큰 결과 2KB로 자름, 목록·개수, Workflow·그룹 삭제 시 실행 기록 삭제, 인덱스 | 통과 |
+| 수행함 | 이전 단계 시험 다시 실행: 그룹 52, Workflow 47, 검증 26 (검증 시험의 "없는 하위 주소" 예시를 `/run`에서 `/zzz`로 바꿈 — `/run`이 생겼으므로) | 통과 |
+| 수행함 | 화면 시험 (실제 API 코드 + 메모리 DB + 가짜 로그인, 크롬): Run 창에 `{"amount":150}` → 실행 결과 창 "기다리는 중", 노드에 성공 표시, "큰 주문? → YES" | 통과 |
+| 수행함 | 실행 결과 창을 열어 둔 채 기다림 → 3초 대기 후 이어서 "성공", 작은 주문 노드는 "건너뜀"(흐리게) | 통과 |
+| 수행함 | 결과 항목 누르기 → 출력 `{"msg":"큰 주문 150원"}` 펼침, 노드 선택 | 통과 |
+| 수행함 | 저장 안 된 변경이 있으면 Run 꺼짐("저장한 뒤 실행할 수 있습니다"), 저장 후 켜짐 | 통과 |
+| 수행함 | 필수값 빈 Switch를 저장하고 Run → 서버가 거절, 위쪽 안내 + 검증 결과 창 자동으로 열림 | 통과 |
+| 수행함 | Viewer: Run 꺼짐(이유 표시), 실행 기록 버튼으로 지난 실행·노드 표시 보기, 취소 버튼 없음 | 통과 |
+| 수행함 | Dashboard 실행 수 1 (거절된 실행은 기록 안 됨) | 통과 |
+| 수행함 | 시험 중 콘솔 오류 0건 | 통과 |
+| 수행 안 함 | 화면에서 취소 버튼 누르기 | 미확인 (서버 취소는 시험함) |
+| 수행 안 함 | 실제 Vercel에서 30초 설정·실제 바깥 주소로 HTTP 요청 | 배포 후 확인 필요 |
+| 수행 안 함 | 휴대폰 폭에서 실행 결과 창 | 미확인 |
+
+미완료 항목
+
+- 아무도 화면을 보지 않을 때 Delay 뒤를 이어 가는 서버 주기 작업 (예약 실행과 함께)
+- GAS·GitHub Actions 실행기, Webhook으로 시작하기, Schedule 예약 실행 (9단계)
+- 실패 시 재시도(retrying), 오류 갈래
+- 실행 기록 전용 화면(Executions 메뉴)과 30일 자동 삭제, 노드별 로그 컬렉션 (10단계)
+- DNS 주소가 확인 뒤 바뀌는 경우(DNS rebinding)까지는 막지 못함
+
+다음 작업
+
+- 9단계: 외부 연동 (GAS / GitHub Actions / Webhook)
+
+---
+
 ## 2026-11-16 · v0.7.0 · 7단계 Workflow 검증 (Validator)
 
 | 항목 | 내용 |
@@ -20,7 +76,7 @@
 | 변경 목적 | 설계 문서 12장 개발 순서의 7단계. 3.2 Toolbar의 Validate, 4.2 "실행 흐름 검증", 7.1 실행 전 "Workflow 유효성 검사" |
 | 변경 파일 | 신규: `shared/validator.js`, `shared/nodeKinds.js`, `src/editor/ValidationPanel.jsx`, `src/editor/validationContext.js` / 이동: `src/editor/nodeFields.js` → `shared/nodeFields.js` / 수정: `src/editor/nodeCatalog.js`(공용 목록 + 아이콘), `src/editor/FlowEditor.jsx`(검증 상태·패널·노드 이동), `src/editor/EditorToolbar.jsx`(Validate 켜기), `src/editor/WorkflowNode.jsx`(문제 노드 테두리, 테두리 스타일을 컴포넌트로), `src/editor/editor.css`(border 제거), `src/editor/PropertiesPanel.jsx`(import 경로), `api/workflows.js`, `api/_lib/workflows.js`(검증 API), `package.json`, `package-lock.json`, `README.md`, `docs/*` |
 | 영향 범위 | Workflow 편집기(새·저장된 화면 모두), 새 API `POST /api/workflows/:id/validate`. DB 변경 없음 |
-| 배포 상태 | 배포 전 |
+| 배포 상태 | 운영 배포 (2026-11-16) · 커밋 30da20e. Vercel 배포 READY, 운영 주소의 편집기 파일에 검증 결과 창 포함 확인 |
 | 롤백 방법 | Vercel에서 이전 배포(커밋 8a36ab2)로 되돌리기, 또는 `git revert`. 데이터 변경이 없어 되돌려도 영향 없음 |
 
 설계와 달라진 점 (설계 문서 v1.6에 반영함)
@@ -50,7 +106,7 @@
 | 수행함 | HTTP Request → If/Else 선으로 순환 만들기 → "순환 연결이 있습니다: If / Else → HTTP Request" | 통과 |
 | 수행함 | 휴대폰 폭(390px): 결과 창이 아래쪽에, 캔버스는 위쪽에 남음 | 통과 |
 | 수행함 | 시험 중 콘솔 오류 0건 | 통과 |
-| 수행 안 함 | 배포 주소에서 저장된 Workflow 검증 (실제 로그인·DB) | 배포 후 확인 필요 |
+| 수행 안 함 | 배포 주소에서 저장된 Workflow 검증 (실제 로그인·DB) | 미확인 (사용자 계정에 저장된 Workflow가 없었음) |
 
 미완료 항목
 

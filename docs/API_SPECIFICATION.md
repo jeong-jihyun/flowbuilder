@@ -195,9 +195,60 @@ Workflow API 오류
 - `nodeId`·`edgeId`는 문제 위치(있을 때만).
 - 오류: 404 `WORKFLOW_NOT_FOUND`(없거나 멤버 아님), 405(POST가 아님)
 
+## 실행 API (8단계)
+
+실행 시작은 `api/workflows.js`, 실행 기록은 `api/executions.js`가 받습니다. 두 함수는 최대 30초까지 돌 수 있게 설정했습니다(`vercel.json`). 실행 방식은 설계 문서 7.4.
+
+| 방식 | 주소 | 누가 | 본문 | 성공 응답 |
+| --- | --- | --- | --- | --- |
+| POST | `/api/workflows/:id/run` | 그룹의 Owner·Admin·Editor | `{ input?, triggerNodeId? }` | 201 `{ execution }` 최대 20초 진행한 상태 |
+| GET | `/api/executions?workflowId=` | 그 Workflow의 그룹 멤버 | - | 200 `{ executions: [Execution], counts: { total, failed } }` 최근 20개 |
+| GET | `/api/executions` | 로그인한 누구나 | - | 200 위와 같음 (내가 속한 그룹 전체) |
+| GET | `/api/executions/:id` | 그룹 멤버 | - | 200 `{ execution }` 진행 중이고 처리할 차례면 최대 8초 더 진행한 뒤 |
+| POST | `/api/executions/:id/cancel` | 그룹의 Owner·Admin·Editor | - | 200 `{ execution }` |
+
+Execution
+
+```json
+{
+  "id": "673a...",
+  "workflowId": "6739...",
+  "workflowName": "주문 처리",
+  "workflowVersion": 3,
+  "status": "success",
+  "triggerNodeId": "trigger_1",
+  "startedBy": "user_xxx",
+  "createdAt": "2026-11-16T12:00:00.000Z",
+  "finishedAt": "2026-11-16T12:00:05.300Z",
+  "resumeAt": null,
+  "error": null,
+  "stepCount": 5,
+  "input": { "amount": 150 },
+  "steps": [
+    { "nodeId": "condition_1", "label": "큰 주문?", "kind": "ifElse", "status": "success", "branch": "yes", "output": { "amount": 150 }, "startedAt": "...", "finishedAt": "..." }
+  ]
+}
+```
+
+- `input`·`steps`는 하나 불러오기·실행·취소 응답에만 있습니다(목록에는 없음).
+- `status`: `running`(진행 중) · `waiting`(Delay 등으로 기다림, `resumeAt` 이후 진행) · `success` · `failed` · `cancelled`. 노드 `status`는 여기에 `skipped`(실행 안 함)가 더해집니다.
+
+실행 API 오류
+
+| 상태 | error | 뜻 |
+| --- | --- | --- |
+| 400 | `VALIDATION_FAILED` | 저장된 버전에 검증 오류가 있어 실행 안 함. `detail`에 오류 수. 기록을 만들지 않음 |
+| 400 | `INVALID_INPUT` | 입력이 { } JSON이 아니거나 10KB 초과 |
+| 400 | `INVALID_TRIGGER` | `triggerNodeId`가 이 Workflow의 Trigger가 아님 |
+| 403 | `FORBIDDEN` | Viewer가 실행·취소 |
+| 404 | `WORKFLOW_NOT_FOUND` / `EXECUTION_NOT_FOUND` | 없거나 그룹 멤버가 아님 |
+| 409 | `TOO_MANY_RUNNING` | 이 Workflow가 이미 3개 진행 중 |
+| 409 | `ALREADY_FINISHED` | 끝난 실행을 취소하려 함 |
+
+Workflow·그룹 API 변경: Workflow를 지우면 그 실행 기록도, 그룹을 지우면 그룹의 실행 기록도 함께 지웁니다.
+
 ## 예정 API (아직 없음, 구현할 때 확정)
 
 | 단계 | 주소 | 용도 |
 | --- | --- | --- |
-| 8 | `/api/workflows/:id/run`, `/api/executions/:id` | 실행·상태 |
 | 9 | `/api/callbacks/runner` | 외부 실행기 결과 수신 |

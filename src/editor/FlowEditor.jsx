@@ -24,6 +24,7 @@ import EditorToolbar from './EditorToolbar.jsx';
 import PropertiesPanel from './PropertiesPanel.jsx';
 import ValidationPanel from './ValidationPanel.jsx';
 import { ValidationContext, issuesByNode } from './validationContext.js';
+import { RunStatusContext } from './runContext.js';
 import { validateWorkflow } from '../../shared/validator.js';
 import { useHistory } from './useHistory.js';
 import { CATEGORIES, createNode, outputLabel, outputsOf } from './nodeCatalog.js';
@@ -42,6 +43,12 @@ import { graphKey, toSavedGraph } from './graph.js';
 //   alwaysSavable  바뀐 것이 없어도 저장 버튼을 켠다 (새 Workflow)
 //   resetGraph     "예시로 되돌리기" 버튼에 쓸 흐름 (없으면 버튼 숨김)
 //   onDirtyChange  저장 안 된 변경이 생기거나 없어질 때
+//   onRun          Run 버튼 (8단계). 없거나 runTip 이 있으면 버튼을 끈다
+//   runTip         Run을 못 누르는 이유 (예: 보기 전용)
+//   runStatus      노드별 실행 상태 Map (실행 결과 창을 볼 때)
+//   bottomPanel    아래쪽에 붙일 창 (실행 결과). 검증 결과 창과 함께 열리지 않는다
+//   validationRequest  값이 바뀌면 검증 결과 창을 연다 (실행이 검증 오류로 거절됐을 때)
+//   onValidationOpen   검증 결과 창이 열릴 때 (바깥에서 실행 결과 창을 닫게)
 
 const PALETTE_WIDTH = 240;
 const PROPERTIES_WIDTH = 320;
@@ -66,6 +73,8 @@ export const EXAMPLE = {
     { id: 'edge_3', source: 'condition_1', sourceHandle: 'no', target: 'action_2', label: 'NO' },
   ],
 };
+
+const EMPTY_STATUS = new Map();
 
 function nodeColor(node) {
   return CATEGORIES[node.type]?.color || '#999';
@@ -97,7 +106,22 @@ function isTyping(e) {
   return el?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el?.tagName);
 }
 
-function Editor({ initial, header, readOnly = false, onChange, onSave, alwaysSavable = false, resetGraph, onDirtyChange }) {
+function Editor({
+  initial,
+  header,
+  readOnly = false,
+  onChange,
+  onSave,
+  alwaysSavable = false,
+  resetGraph,
+  onDirtyChange,
+  onRun,
+  runTip,
+  runStatus,
+  bottomPanel,
+  validationRequest,
+  onValidationOpen,
+}) {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   // 속성 패널을 옆에 붙일 만큼 넓은 화면 (아니면 아래에서 올라오는 창)
@@ -159,6 +183,24 @@ function Editor({ initial, header, readOnly = false, onChange, onSave, alwaysSav
     [validationOpen, nodes, edges]
   );
   const nodeIssues = useMemo(() => issuesByNode(validation), [validation]);
+  const openValidation = useCallback(() => {
+    setValidationOpen(true);
+    onValidationOpen?.();
+  }, [onValidationOpen]);
+
+  // 바깥에서 검증 결과 창을 열어 달라고 할 때
+  useEffect(() => {
+    if (validationRequest) setValidationOpen(true);
+  }, [validationRequest]);
+
+  // 실행 결과 창이 열리면 검증 결과 창은 닫는다 (아래쪽 자리를 하나만 쓴다)
+  const hasBottomPanel = !!bottomPanel;
+  useEffect(() => {
+    if (hasBottomPanel) setValidationOpen(false);
+  }, [hasBottomPanel]);
+
+  // Run: 저장하지 않은 변경이 있으면 먼저 저장해야 한다 (서버는 저장된 버전을 실행)
+  const runBlockedReason = runTip || (dirty ? '저장한 뒤 실행할 수 있습니다 (Ctrl+S)' : '');
 
   // 결과 목록에서 누른 노드를 선택하고 화면 가운데로
   const focusNode = useCallback(
@@ -352,8 +394,11 @@ function Editor({ initial, header, readOnly = false, onChange, onSave, alwaysSav
         readOnly={readOnly}
         onSave={onSave ? save : undefined}
         canSave={canSave}
-        onValidate={() => setValidationOpen(true)}
+        onValidate={openValidation}
         issueCount={validation?.errors.length || 0}
+        onRun={onRun}
+        canRun={!!onRun && !runBlockedReason}
+        runTip={runBlockedReason}
         saving={saving}
         dirty={dirty}
         onDelete={deleteSelected}
@@ -371,34 +416,36 @@ function Editor({ initial, header, readOnly = false, onChange, onSave, alwaysSav
 
         <Box ref={canvasRef} sx={{ flexGrow: 1, minWidth: 0, position: 'relative' }} onDragOver={onDragOver} onDrop={onDrop}>
           <ValidationContext.Provider value={nodeIssues}>
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              nodeTypes={NODE_TYPES}
-              edgeTypes={EDGE_TYPES}
-              defaultEdgeOptions={EDGE_OPTIONS}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              onReconnect={onReconnect}
-              isValidConnection={isValidConnection}
-              onBeforeDelete={onBeforeDelete}
-              onNodeDragStart={history.record}
-              nodesDraggable={!readOnly}
-              nodesConnectable={!readOnly}
-              edgesReconnectable={!readOnly}
-              deleteKeyCode={readOnly ? null : ['Delete', 'Backspace']}
-              connectionRadius={30}
-              fitView
-              fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
-              minZoom={0.2}
-              maxZoom={2}
-              proOptions={{ hideAttribution: true }}
-            >
-              <Background gap={16} />
-              <Controls showInteractive={false} />
-              {isDesktop && <MiniMap nodeColor={nodeColor} pannable zoomable style={{ width: 140, height: 90 }} />}
-            </ReactFlow>
+            <RunStatusContext.Provider value={runStatus || EMPTY_STATUS}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={NODE_TYPES}
+                edgeTypes={EDGE_TYPES}
+                defaultEdgeOptions={EDGE_OPTIONS}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onReconnect={onReconnect}
+                isValidConnection={isValidConnection}
+                onBeforeDelete={onBeforeDelete}
+                onNodeDragStart={history.record}
+                nodesDraggable={!readOnly}
+                nodesConnectable={!readOnly}
+                edgesReconnectable={!readOnly}
+                deleteKeyCode={readOnly ? null : ['Delete', 'Backspace']}
+                connectionRadius={30}
+                fitView
+                fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
+                minZoom={0.2}
+                maxZoom={2}
+                proOptions={{ hideAttribution: true }}
+              >
+                <Background gap={16} />
+                <Controls showInteractive={false} />
+                {isDesktop && <MiniMap nodeColor={nodeColor} pannable zoomable style={{ width: 140, height: 90 }} />}
+              </ReactFlow>
+            </RunStatusContext.Provider>
           </ValidationContext.Provider>
 
           {!isWide && selectedNode && (
@@ -423,6 +470,7 @@ function Editor({ initial, header, readOnly = false, onChange, onSave, alwaysSav
       {validation && (
         <ValidationPanel result={validation} onClose={() => setValidationOpen(false)} onPick={focusNode} />
       )}
+      {!validation && bottomPanel && bottomPanel(focusNode)}
 
       {!isWide && (
         <Drawer

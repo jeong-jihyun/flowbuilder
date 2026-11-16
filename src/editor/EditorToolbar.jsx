@@ -39,6 +39,9 @@ export default function EditorToolbar({
   canSave,
   onValidate,
   issueCount,
+  onRun,
+  canRun,
+  runTip,
   saving,
   dirty,
   onDelete,
@@ -108,7 +111,15 @@ export default function EditorToolbar({
         tip="흐름 검사: 시작점, 연결, 순환, 필수 설정"
         onClick={onValidate}
       />
-      <ToolButton compact={compact} icon={<PlayArrowIcon />} label="Run" tip="실행은 8단계에서 만듭니다" disabled />
+      <ToolButton
+        compact={compact}
+        icon={<PlayArrowIcon />}
+        label="Run"
+        tip={runTip || '저장된 버전 실행'}
+        onClick={onRun}
+        disabled={!onRun || !canRun}
+        color="success"
+      />
       <ToolButton compact={compact} icon={<PublishIcon />} label="Publish" tip="게시는 아직 만들지 않았습니다 (실행 엔진 이후)" disabled />
     </Box>
   );

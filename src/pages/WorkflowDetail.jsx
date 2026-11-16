@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
 import {
   Alert,
@@ -19,7 +19,12 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import HistoryIcon from '@mui/icons-material/History';
 import FlowEditor from '../editor/FlowEditor.jsx';
+import ExecutionPanel from '../editor/ExecutionPanel.jsx';
+import RunDialog from '../editor/RunDialog.jsx';
+import { runStatusByNode } from '../editor/runContext.js';
+import { NODE_KINDS, outputLabel } from '../editor/nodeCatalog.js';
 import { errorText, useApi } from '../lib/api.js';
 import { AUTH_ENABLED } from '../lib/authConfig.js';
 import { ROLE_LABELS } from '../lib/roles.js';
@@ -73,6 +78,14 @@ export default function WorkflowDetail() {
   // 불러올 때마다 바뀌는 값. 편집기를 새로 그려 불러온 내용으로 시작하게 한다.
   const [loadCount, setLoadCount] = useState(0);
 
+  // 실행 (8단계)
+  const [runOpen, setRunOpen] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [execution, setExecution] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [validationRequest, setValidationRequest] = useState(0);
+
   const load = useCallback(async () => {
     setLoadError('');
     setError('');
@@ -106,6 +119,80 @@ export default function WorkflowDetail() {
   );
 
   const onSave = useCallback((graph) => put(graph), [put]);
+
+  const loadHistory = useCallback(async () => {
+    const r = await api(`/executions?workflowId=${id}`);
+    if (r.ok) setHistory(r.body.executions);
+    return r.ok ? r.body.executions : [];
+  }, [api, id]);
+
+  // "실행 기록" 버튼: 창을 열고 가장 최근 실행을 보여 준다
+  async function openHistory() {
+    setPanelOpen(true);
+    setHistoryLoading(true);
+    const list = await loadHistory();
+    if (list[0]) await selectExecution(list[0].id);
+    setHistoryLoading(false);
+  }
+
+  async function selectExecution(executionId) {
+    const r = await api(`/executions/${executionId}`);
+    if (r.ok) setExecution(r.body.execution);
+    else setError(errorText(r));
+  }
+
+  // Run 창에서 실행. 실패 문구를 돌려주면 창에 보여 준다.
+  async function run({ input, triggerNodeId }) {
+    const r = await api(`/workflows/${id}/run`, { method: 'POST', json: { input, triggerNodeId } });
+    if (r.ok) {
+      setRunOpen(false);
+      setExecution(r.body.execution);
+      setPanelOpen(true);
+      loadHistory();
+      return '';
+    }
+    if (r.body?.error === 'VALIDATION_FAILED') {
+      // 검증 오류: 창을 닫고 검증 결과를 보여 준다
+      setRunOpen(false);
+      setPanelOpen(false);
+      setValidationRequest((n) => n + 1);
+      setError(errorText(r));
+      return '';
+    }
+    return errorText(r);
+  }
+
+  async function cancelRun() {
+    const r = await api(`/executions/${execution.id}/cancel`, { method: 'POST' });
+    if (r.ok) {
+      setExecution(r.body.execution);
+      loadHistory();
+    } else setError(errorText(r));
+  }
+
+  // 진행 중인 실행은 주기적으로 상태를 물어본다 (서버는 물어볼 때 이어서 처리한다)
+  const executionId = execution?.id;
+  const executionStatus = execution?.status;
+  useEffect(() => {
+    if (!panelOpen || !executionId || (executionStatus !== 'running' && executionStatus !== 'waiting')) return undefined;
+    let alive = true;
+    const t = setTimeout(
+      async () => {
+        const r = await api(`/executions/${executionId}`);
+        if (!alive || !r.ok) return;
+        setExecution(r.body.execution);
+        if (r.body.execution.status !== 'running' && r.body.execution.status !== 'waiting') loadHistory();
+      },
+      executionStatus === 'waiting' ? 5000 : 1500
+    );
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [api, panelOpen, executionId, executionStatus, execution, loadHistory]);
+
+  const runStatus = useMemo(() => (panelOpen ? runStatusByNode(execution) : null), [panelOpen, execution]);
+  const triggers = useMemo(() => (wf ? wf.nodes.filter((n) => NODE_KINDS[n.data.kind]?.category === 'trigger') : []), [wf]);
 
   async function remove() {
     const r = await api(`/workflows/${id}`, { method: 'DELETE' });
@@ -170,6 +257,11 @@ export default function WorkflowDetail() {
         <Typography variant="caption" color={dirty && canEdit ? 'warning.dark' : 'text.secondary'} noWrap>
           {status}
         </Typography>
+        <Tooltip title="실행 기록">
+          <IconButton size="small" onClick={openHistory} aria-label="실행 기록">
+            <HistoryIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
         {canEdit && (
           <Tooltip title="Workflow 삭제">
             <IconButton size="small" onClick={() => setDeleting(true)} aria-label="Workflow 삭제">
@@ -208,7 +300,33 @@ export default function WorkflowDetail() {
         onSave={canEdit ? onSave : undefined}
         onDirtyChange={setDirty}
         header={header}
+        onRun={wf.permissions.run ? () => setRunOpen(true) : undefined}
+        runTip={wf.permissions.run ? '' : `보기 전용입니다 (${ROLE_LABELS[wf.myRole]}). 실행 기록은 볼 수 있습니다.`}
+        runStatus={runStatus}
+        validationRequest={validationRequest}
+        onValidationOpen={() => setPanelOpen(false)}
+        bottomPanel={
+          panelOpen
+            ? (focusNode) => (
+                <ExecutionPanel
+                  execution={execution}
+                  history={history}
+                  loading={historyLoading}
+                  canCancel={wf.permissions.run}
+                  onCancel={cancelRun}
+                  onSelect={selectExecution}
+                  onClose={() => setPanelOpen(false)}
+                  onPick={focusNode}
+                  branchLabel={(step) => {
+                    const node = wf.nodes.find((n) => n.id === step.nodeId);
+                    return outputLabel(node, step.branch) || step.branch;
+                  }}
+                />
+              )
+            : null
+        }
       />
+      <RunDialog open={runOpen} triggers={triggers} onClose={() => setRunOpen(false)} onRun={run} />
       <RenameDialog
         open={renaming}
         name={wf.name}

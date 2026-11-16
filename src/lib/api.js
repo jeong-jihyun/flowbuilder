@@ -61,6 +61,12 @@ const ERROR_TEXT = {
   WORKFLOW_TOO_LARGE: 'Workflow가 너무 큽니다.',
   TOO_MANY_WORKFLOWS: '이 그룹에 Workflow가 너무 많습니다. 안 쓰는 것을 지운 뒤 다시 시도하세요.',
   NOT_FOUND: '없는 주소입니다.',
+  VALIDATION_FAILED: '검증 오류가 있어 실행하지 않았습니다. 아래 검증 결과를 확인하세요.',
+  TOO_MANY_RUNNING: '이 Workflow는 이미 여러 개가 실행 중입니다. 끝나거나 취소한 뒤 다시 실행하세요.',
+  INVALID_INPUT: '입력값이 올바르지 않습니다.',
+  INVALID_TRIGGER: '시작할 Trigger를 찾을 수 없습니다.',
+  EXECUTION_NOT_FOUND: '실행 기록이 없거나, 그 Workflow가 속한 그룹의 멤버가 아닙니다.',
+  ALREADY_FINISHED: '이미 끝난 실행입니다.',
 };
 
 // apiFetch 결과를 사람이 읽을 문장으로 바꾼다.
