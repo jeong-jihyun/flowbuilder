@@ -49,6 +49,8 @@ import { graphKey, toSavedGraph } from './graph.js';
 //   bottomPanel    아래쪽에 붙일 창 (실행 결과). 검증 결과 창과 함께 열리지 않는다
 //   validationRequest  값이 바뀌면 검증 결과 창을 연다 (실행이 검증 오류로 거절됐을 때)
 //   onValidationOpen   검증 결과 창이 열릴 때 (바깥에서 실행 결과 창을 닫게)
+//   credentials    이 Workflow 그룹의 인증정보 목록 (노드 설정에서 고르기, 9단계)
+//   automation     { workflowId, active } 저장된 Workflow일 때만 (Webhook 주소 표시, 9단계)
 
 const PALETTE_WIDTH = 240;
 const PROPERTIES_WIDTH = 320;
@@ -121,6 +123,8 @@ function Editor({
   bottomPanel,
   validationRequest,
   onValidationOpen,
+  credentials,
+  automation,
 }) {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
@@ -378,6 +382,8 @@ function Editor({
       onEndEdit={endEdit}
       onDelete={() => deleteElements({ nodes: [selectedNode] })}
       readOnly={readOnly}
+      credentials={credentials}
+      automation={automation}
       onClose={isWide ? undefined : () => setPropertiesOpen(false)}
     />
   );

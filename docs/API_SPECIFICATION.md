@@ -247,8 +247,49 @@ Execution
 
 Workflow·그룹 API 변경: Workflow를 지우면 그 실행 기록도, 그룹을 지우면 그룹의 실행 기록도 함께 지웁니다.
 
+## 외부 연동 API (9단계)
+
+| 방식 | 주소 | 누가 | 본문 | 성공 응답 |
+| --- | --- | --- | --- | --- |
+| GET | `/api/credentials[?groupId=]` | 그룹 멤버 | - | 200 `{ credentials: [Credential] }` (비밀값 없음) |
+| POST | `/api/credentials` | 그룹의 Owner·Admin | `{ groupId, name, type, secret, headerName? }` | 201 `{ credential }` |
+| DELETE | `/api/credentials/:id` | 그룹의 Owner·Admin | - | 200 `{}` |
+| POST | `/api/workflows/:id/activate` | Owner·Admin·Editor | `{ active: true/false }` | 200 `{ status: "active" \| "draft" }` |
+| GET | `/api/workflows/:id/webhook?nodeId=` | Owner·Admin·Editor | - | 200 `{ path }` (없으면 `null`) |
+| POST | `/api/workflows/:id/webhook` | Owner·Admin·Editor | `{ nodeId }` | 201 `{ path }` 새 주소 (이전 주소는 멈춤) |
+| POST·GET | `/api/hooks/<토큰>` | 로그인 없음 (토큰이 열쇠) | 받은 내용 | 202 `{ ok, executionId, status }` |
+| POST | `/api/cron` | `Authorization: Bearer <CRON_SECRET>` | - | 200 `{ ok, schedules: { started, skipped, failed }, executions, time }` |
+
+Credential: `{ id, groupId, name, type, headerName?, hint, createdAt }`. `type`은 `githubToken` · `gasSecret` · `httpHeader`. `hint`는 비밀값의 끝 4글자(8글자 이하면 `…`). 그룹당 50개, 이름 50자, 비밀값 4000자까지.
+
+Webhook 규칙
+
+- 주소는 `/api/hooks/<무작위 토큰>`. 노드마다 하나. 토큰은 DB에 해시로 찾고 암호화해서도 보관합니다.
+- Webhook 노드의 "받을 요청 방식"(GET 또는 POST)과 다르면 405 (`Allow` 헤더).
+- 받은 본문과 주소 뒤 `?값`은 합쳐서 10,000자까지(넘으면 413). Trigger의 출력은 `{ body, query }`.
+- 그 Workflow의 "자동 실행"이 꺼져 있으면 409 `WORKFLOW_INACTIVE`.
+- 요청이 끝나길 기다리지 않고 202로 바로 답하고, 실행은 최대 8초 진행한 뒤 이어서 처리합니다.
+
+자동 실행·예약
+
+- `activate`로 켤 때 검증(7.3)을 하고 오류가 있으면 400 `VALIDATION_FAILED`. 켠 뒤 검증 오류가 있는 모양으로 저장하면 자동으로 꺼집니다.
+- `/api/cron`은 GitHub Actions(`.github/workflows/flowbuilder-tick.yml`)가 5분마다 부릅니다. 자동 실행이 켜진 Workflow의 Schedule 노드를 확인해 시각이 된 것을 실행하고(같은 시각은 한 번만, 1시간 넘게 늦으면 건너뜀), 기다리는 실행을 최대 15초 진행합니다.
+- `CRON_SECRET`이 서버에 없으면 503 `CRON_NOT_CONFIGURED`, 값이 맞지 않으면 401.
+
+외부 연동 API 오류
+
+| 상태 | error | 뜻 |
+| --- | --- | --- |
+| 400 | `INVALID_CREDENTIAL_TYPE` · `SECRET_REQUIRED` · `INVALID_HEADER_NAME` · `NODE_ID_REQUIRED` · `INVALID_ACTIVE` | 입력이 올바르지 않음 |
+| 403 | `FORBIDDEN` | Editor 이하가 인증정보를 등록·삭제 |
+| 404 | `CREDENTIAL_NOT_FOUND` · `WEBHOOK_NOT_FOUND` · `WEBHOOK_NODE_NOT_FOUND` | 없거나 그룹 멤버가 아님 / 토큰이 틀림 / 저장 안 된 노드 |
+| 405 | `METHOD_NOT_ALLOWED` | Webhook 요청 방식이 노드 설정과 다름 |
+| 409 | `WORKFLOW_INACTIVE` · `TOO_MANY_CREDENTIALS` | 자동 실행이 꺼져 있음 / 그룹당 50개 초과 |
+| 413 | `PAYLOAD_TOO_LARGE` | Webhook 내용이 10,000자 초과 |
+| 503 | `CREDENTIALS_NOT_CONFIGURED` · `CRON_NOT_CONFIGURED` | 서버에 `CREDENTIALS_KEY` / `CRON_SECRET`이 없음 |
+
 ## 예정 API (아직 없음, 구현할 때 확정)
 
 | 단계 | 주소 | 용도 |
 | --- | --- | --- |
-| 9 | `/api/callbacks/runner` | 외부 실행기 결과 수신 |
+| 10 | 실행 기록 전용 화면용 조회 | Executions 메뉴 |

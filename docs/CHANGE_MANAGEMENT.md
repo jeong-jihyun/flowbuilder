@@ -11,6 +11,57 @@
 
 ---
 
+## 2026-11-17 · v0.9.0 · 9단계 외부 연동 (GAS · GitHub Actions · Webhook · 예약 실행)
+
+| 항목 | 내용 |
+| --- | --- |
+| 변경일 | 2026-11-17 (서버 코드는 2026-11-16 커밋 8cd3656, 화면·문서·시험은 2026-11-17) |
+| 작업자 | Claude (AI), 요청: 정지현 |
+| 변경 목적 | 설계 문서 12장 개발 순서의 9단계. 2장 Runner Adapter(GAS·GitHub), 3.1 Trigger(Webhook·Schedule), 6장 credentials, 8장 인증정보 보호 |
+| 변경 파일 | 신규: `api/credentials.js`, `api/hooks.js`, `api/cron.js`, `api/_lib/{credentials,crypto,automation}.js`, `api/_lib/runners/{gas,github}.js`, `.github/workflows/flowbuilder-tick.yml`, `src/pages/Credentials.jsx`, `src/editor/WebhookAddress.jsx`, `docs/GAS_TEMPLATE.md` / 수정: `api/workflows.js`(activate·webhook), `api/_lib/workflows.js`, `api/_lib/executions.js`, `api/_lib/engine/executors.js`, `api/_lib/runners/{index,http}.js`, `api/_lib/db.js`(인덱스), `shared/nodeFields.js`(인증정보 고르기 항목), `vercel.json`, `src/menu.js`, `src/App.jsx`, `src/lib/api.js`, `src/editor/{PropertiesPanel,FlowEditor}.jsx`, `src/pages/WorkflowDetail.jsx`, `.env.example`, `package.json`, `README.md`, `docs/*` |
+| 영향 범위 | 새 메뉴 Credentials, 노드 설정의 인증정보 고르기(HTTP·GAS·GitHub), Webhook 노드의 받을 주소, 저장된 Workflow 위쪽의 "자동 실행" 스위치. 새 API `/api/credentials`, `/api/hooks/<토큰>`, `/api/cron`, `/api/workflows/:id/activate`·`webhook`. 새 컬렉션 `credentials`·`webhook_tokens`, `workflows`에 `scheduleState`·`activatedAt`. HTTP·GAS·GitHub 노드가 실제로 바깥에 요청을 보냄 |
+| 필요한 설정 (배포 전) | Vercel 환경변수 `CREDENTIALS_KEY`(32바이트 base64)·`CRON_SECRET`, GitHub 저장소 Secret `FLOWBUILDER_CRON_SECRET`(= `CRON_SECRET`과 같은 값). 없으면 인증정보 등록은 503 `CREDENTIALS_NOT_CONFIGURED`, `/api/cron`은 503 `CRON_NOT_CONFIGURED` |
+| 배포 상태 | **미배포** (GitHub 푸시 전, 사용자 확인 대기) |
+| 롤백 방법 | Vercel에서 이전 배포(커밋 11437e4)로 되돌리기, 또는 `git revert`. 새 컬렉션은 남지만 이전 버전은 읽지 않음. `CREDENTIALS_KEY`를 바꾸거나 잃어버리면 등록한 인증정보를 읽을 수 없으니 다시 등록해야 함 |
+
+설계와 달라진 점 (설계 문서 v1.8에 반영함)
+
+| 항목 | 설계 | 구현 | 이유 |
+| --- | --- | --- | --- |
+| 외부 실행기 결과 받기 | `RUNNER_CALLBACK_SECRET`으로 Callback 검증 | Callback 없음. GAS는 응답을 기다리고(15초), GitHub는 상태를 15초 간격으로 물어봄 | Vercel 함수가 짧고, 받는 주소를 열면 공격 대상이 늘어서 |
+| 주기 작업 | 정의 없음 | GitHub Actions가 5분마다 `/api/cron`을 부름 | Vercel Hobby 크론은 하루 1번뿐 (무료만 쓰는 조건) |
+| 자동 실행 | 정의 없음 | Workflow의 `status`를 `active`로 두고 켜기·끄기 | Webhook·예약은 사용자가 켠 Workflow만 시작하게 |
+| 예약 시각 정밀도 | 정의 없음 | 5분 안팎 지연 가능, 1시간 넘게 늦으면 건너뜀 | 주기 작업이 5분 간격이고 GitHub이 늦게 부를 수 있어서 |
+| 인증정보 비밀값 | "Credential 암호화" 미정 | AES-256-GCM, 키는 환경변수, 화면에는 끝 4글자만 | 설계 8장 |
+
+검증 결과
+
+| 구분 | 항목 | 결과 |
+| --- | --- | --- |
+| 수행함 | `npm run build` | 통과 |
+| 수행함 | 암호화 10개: 복호화 일치, 암호문에 평문 없음, 같은 값도 매번 다른 암호문, 암호문·태그·키를 바꾸면 실패, 키 없음·길이 틀림은 503, Webhook 토큰 모양, 해시·비교 | 통과 |
+| 수행함 | 예약 시각 계산 9개 (한국 시간): 매일·매시간·매주, 정각, 자정 경계, 요일 경계 | 통과 |
+| 수행함 | GAS 실행기 10개 (가짜 응답): 302 따라가기·토큰 전달·입력값 채우기, 다른 곳으로 넘기면 실패, script.google.com이 아니면 요청 안 보냄, 내부 주소로 풀리면 실패, 인증정보 없음, JSON이 아닌 응답, `ok:false`, 500, 깨진 JSON, 연결 오류 | 통과 |
+| 수행함 | GitHub Actions 실행기 14개 (가짜 응답): 시작·15초 뒤 확인, 진행 중·성공·실패 결론, 6시간 넘으면 중단, 204, 401·403·404·422 안내, 인증정보 없음, 저장소 모양 검사, 파일 이름 인코딩, 깨진 입력값 | 통과 |
+| 수행 안 함 | 인증정보 등록·목록·삭제와 권한(Owner·Admin만), 다른 그룹 인증정보 못 씀, Webhook 주소 만들기·받기(405·409·413·404), 자동 실행 켜기·끄기·검증 오류 거절, 예약 실행의 중복 방지(같은 시각 한 번), `/api/cron` 인증(401·503) | **미확인** (시험용 메모리 DB를 이 환경에서 내려받지 못함) |
+| 수행 안 함 | 화면: Credentials 메뉴, 인증정보 고르기, Webhook 주소 복사, 자동 실행 스위치, 휴대폰 폭 | **미확인** (빌드만 통과) |
+| 수행 안 함 | 실제 Google Apps Script·GitHub 호출, GitHub Actions 5분 주기 작업이 실제로 도는지, Vercel 환경변수 적용, 배포 | **미확인** |
+
+미완료 항목
+
+- 위 "수행 안 함" 항목의 확인
+- 실패 시 재시도(retrying), 오류 갈래
+- 실행 기록 전용 화면(Executions)과 30일 자동 삭제 (10단계)
+- DNS 주소가 확인 뒤 바뀌는 경우(DNS rebinding)까지는 막지 못함
+- 인증정보 수정(비밀값 바꾸기)은 없음: 삭제 후 다시 등록
+- GitHub은 저장소에 60일 동안 변경이 없으면 예약 실행을 멈춤 → 5분 주기 작업이 멈출 수 있음 (멈추면 Actions 화면에서 다시 켜기)
+
+다음 작업
+
+- 10단계: 실행 기록 화면과 30일 자동 삭제
+
+---
+
 ## 2026-11-16 · v0.8.0 · 8단계 실행 엔진 (Execution Orchestrator)
 
 | 항목 | 내용 |

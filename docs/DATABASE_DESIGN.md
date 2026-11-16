@@ -107,6 +107,36 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 
 용량: Workflow당 최근 50개만 남기고 오래된 것은 실행을 시작할 때 지웁니다. 1건은 대개 수 KB (노드 결과 2KB × 노드 수가 최대). 노드별 로그를 따로 두는 `execution_logs`와 30일 자동 삭제는 10단계.
 
+### credentials (9단계)
+
+| 필드 | 형식 | 설명 |
+| --- | --- | --- |
+| `_id` | ObjectId | 인증정보 ID. 노드의 `params.credentialId`가 이 값을 글자로 가짐 |
+| `groupId` | ObjectId | 소유 그룹. 실행 엔진은 Workflow의 그룹 것만 꺼내 씀 |
+| `name`, `type` | string | 이름(50자), 종류 `githubToken` / `gasSecret` / `httpHeader` |
+| `headerName` | string | `httpHeader`일 때 헤더 이름 |
+| `box` | object | 비밀값 암호문 `{ v, iv, tag, data }` (AES-256-GCM, 키는 환경변수 `CREDENTIALS_KEY`) |
+| `hint` | string | 비밀값 끝 4글자(8글자 이하면 `…`) |
+| `createdBy`, `createdAt` | string, Date | |
+
+인덱스: `{ groupId: 1 }`. 목록 조회는 `box`를 읽지 않습니다.
+
+### webhook_tokens (9단계)
+
+| 필드 | 형식 | 설명 |
+| --- | --- | --- |
+| `tokenHash` | string | 토큰의 SHA-256 (유일). 요청이 오면 이것으로 찾음 |
+| `box` | object | 토큰 암호문. 화면에 주소를 다시 보여 주기 위함 |
+| `workflowId`, `groupId`, `nodeId` | ObjectId, ObjectId, string | 어느 Workflow의 어느 Webhook 노드인지 |
+| `createdBy`, `createdAt` | string, Date | |
+
+인덱스: `{ tokenHash: 1 }`(유일), `{ workflowId: 1, nodeId: 1 }`. 노드당 하나이며 새로 만들면 이전 것을 지웁니다. Workflow를 지우면 함께 지웁니다.
+
+### workflows·executions 변경 (9단계)
+
+- `workflows.status`: `draft` / `active`(자동 실행 켬). `activatedAt`: 켠 시각(그 이전의 예약 시각은 실행 안 함). `scheduleState.<노드ID>`: 마지막으로 맡은 예약 시각(ms). 같은 시각을 두 번 실행하지 않으려고 먼저 기록합니다(노드 ID의 `.`은 `%2E`로 바꿔 저장).
+- `executions.steps[].runner`: 실행기가 지난번에 남긴 값(예: GitHub 실행 번호). 새 인덱스 `{ status: 1, resumeAt: 1 }`(주기 작업이 이어 갈 실행을 찾음), `workflows`에 `{ status: 1 }`.
+
 ## 용량 정책 (2026-11-16 확정)
 
 무료 등급(M0)은 512MB입니다. 용량의 대부분은 `execution_logs`가 차지합니다.
@@ -130,4 +160,4 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 
 - 3단계 외 컬렉션의 인덱스
 - 노드별 입력·출력 스키마
-- Credential 암호화 방식과 키 보관 위치
+- 인증정보 키를 바꾸는(회전) 절차 (지금은 바꾸면 모두 다시 등록)

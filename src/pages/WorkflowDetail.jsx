@@ -11,7 +11,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  FormControlLabel,
   IconButton,
+  Switch,
   TextField,
   Tooltip,
   Typography,
@@ -86,6 +88,11 @@ export default function WorkflowDetail() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [validationRequest, setValidationRequest] = useState(0);
 
+  // 자동 실행·인증정보 (9단계)
+  const [credentials, setCredentials] = useState([]);
+  const [activating, setActivating] = useState(false);
+  const [notice, setNotice] = useState('');
+
   const load = useCallback(async () => {
     setLoadError('');
     setError('');
@@ -94,6 +101,8 @@ export default function WorkflowDetail() {
     if (r.ok) {
       setWf(r.body.workflow);
       setLoadCount((n) => n + 1);
+      const c = await api(`/credentials?groupId=${r.body.workflow.groupId}`);
+      setCredentials(c.ok ? c.body.credentials : []);
     } else setLoadError(errorText(r));
   }, [api, id]);
 
@@ -107,6 +116,10 @@ export default function WorkflowDetail() {
       setError('');
       const r = await api(`/workflows/${id}`, { method: 'PUT', json: { version: wf.version, ...changes } });
       if (r.ok) {
+        // 자동 실행 중이던 Workflow에 검증 오류가 생기면 서버가 자동 실행을 끈다
+        if (wf.status === 'active' && r.body.workflow.status !== 'active') {
+          setNotice('검증 오류가 있는 모양으로 저장되어 자동 실행이 꺼졌습니다. 오류를 고친 뒤 다시 켜세요.');
+        }
         setWf((cur) => ({ ...cur, ...r.body.workflow, groupName: cur.groupName }));
         setSavedAt(new Date());
         return true;
@@ -191,6 +204,20 @@ export default function WorkflowDetail() {
     };
   }, [api, panelOpen, executionId, executionStatus, execution, loadHistory]);
 
+  async function toggleActive(active) {
+    setActivating(true);
+    setError('');
+    setNotice('');
+    const r = await api(`/workflows/${id}/activate`, { method: 'POST', json: { active } });
+    setActivating(false);
+    if (r.ok) setWf((cur) => ({ ...cur, status: r.body.status }));
+    else if (r.body?.error === 'VALIDATION_FAILED') {
+      setPanelOpen(false);
+      setValidationRequest((n) => n + 1);
+      setError('검증 오류가 있어 자동 실행을 켜지 못했습니다. 아래 검증 결과를 확인하세요. (저장한 내용으로 검사합니다)');
+    } else setError(errorText(r));
+  }
+
   const runStatus = useMemo(() => (panelOpen ? runStatusByNode(execution) : null), [panelOpen, execution]);
   const triggers = useMemo(() => (wf ? wf.nodes.filter((n) => NODE_KINDS[n.data.kind]?.category === 'trigger') : []), [wf]);
 
@@ -254,6 +281,23 @@ export default function WorkflowDetail() {
         )}
         <Chip size="small" label={wf.groupName || '그룹'} variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />
         <Box sx={{ flexGrow: 1 }} />
+        {canEdit && (
+          <Tooltip title="켜면 Webhook·예약(Schedule) 노드가 저장된 내용대로 자동으로 시작합니다">
+            <FormControlLabel
+              sx={{ mr: 0, ml: 0 }}
+              control={
+                <Switch
+                  size="small"
+                  checked={wf.status === 'active'}
+                  disabled={activating}
+                  onChange={(e) => toggleActive(e.target.checked)}
+                  inputProps={{ 'aria-label': '자동 실행' }}
+                />
+              }
+              label={<Typography variant="caption">자동 실행</Typography>}
+            />
+          </Tooltip>
+        )}
         <Typography variant="caption" color={dirty && canEdit ? 'warning.dark' : 'text.secondary'} noWrap>
           {status}
         </Typography>
@@ -283,6 +327,11 @@ export default function WorkflowDetail() {
           다른 사람이 먼저 저장해서 덮어쓰지 않았습니다. 최신 내용을 불러오면 지금 화면의 저장 안 된 변경은 사라집니다.
         </Alert>
       )}
+      {notice && (
+        <Alert severity="warning" sx={{ mt: 1 }} onClose={() => setNotice('')}>
+          {notice}
+        </Alert>
+      )}
       {error && (
         <Alert severity="error" sx={{ mt: 1 }} onClose={() => setError('')}>
           {error}
@@ -303,6 +352,8 @@ export default function WorkflowDetail() {
         onRun={wf.permissions.run ? () => setRunOpen(true) : undefined}
         runTip={wf.permissions.run ? '' : `보기 전용입니다 (${ROLE_LABELS[wf.myRole]}). 실행 기록은 볼 수 있습니다.`}
         runStatus={runStatus}
+        credentials={credentials}
+        automation={{ workflowId: wf.id, active: wf.status === 'active' }}
         validationRequest={validationRequest}
         onValidationOpen={() => setPanelOpen(false)}
         bottomPanel={

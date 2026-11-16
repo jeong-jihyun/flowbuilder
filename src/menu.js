@@ -6,7 +6,7 @@ export const MENU = [
   { path: '/workflows', label: 'Workflows', ready: true },
   { path: '/editor', label: 'Workflow Editor', ready: true },
   { path: '/executions', label: 'Executions', ready: false, step: 10 },
-  { path: '/credentials', label: 'Credentials', ready: false, step: 9 },
+  { path: '/credentials', label: 'Credentials', ready: true },
   // Settings에 무엇을 둘지는 아직 정하지 않았다
   { path: '/settings', label: 'Settings', ready: false },
 ];

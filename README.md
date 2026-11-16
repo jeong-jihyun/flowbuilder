@@ -9,18 +9,19 @@
 
 접속 주소: https://flowbuilder-roan.vercel.app
 
-**8단계(실행 엔진) 완료** — 전체 12단계 중 8단계. 저장한 Workflow를 Run으로 실행하고, 노드별 진행 상태와 결과를 봅니다. 조건 분기·데이터 변환·대기·HTTP 요청이 실제로 동작합니다. GAS·GitHub Actions 연결은 9단계.
+**9단계(외부 연동) 코드 완료, 일부 시험·배포 전** — 전체 12단계 중 9단계. Credentials에 토큰·키를 암호화해 보관하고, GAS·GitHub Actions 노드, Webhook으로 시작, 예약(Schedule) 실행, "자동 실행" 스위치가 있습니다. DB가 필요한 부분과 화면은 아직 시험하지 못했습니다(`docs/CHANGE_MANAGEMENT.md`의 검증 결과 참고).
 
 | 되는 것 | 아직 안 되는 것 |
 | --- | --- |
-| 화면 틀(상단바, 메뉴, PC/모바일 전환) | GAS·GitHub Actions·Webhook 받기, 예약 실행 (9단계) |
+| 화면 틀(상단바, 메뉴, PC/모바일 전환) | 9단계 항목의 DB·화면·실제 연동 시험, 배포 |
 | Dashboard: Workflow 수·최근 Workflow·실행 수·실패 수 | 실행 기록 화면·30일 자동 삭제 (10단계) |
 | 실행: Run(입력값·Trigger 선택), 진행 상태·노드별 결과·취소, 실행 기록 (`/api/workflows/:id/run`, `/api/executions`) | |
+| 외부 연동: Credentials(`/api/credentials`), GAS·GitHub Actions 노드, Webhook 주소(`/api/hooks/<토큰>`), 자동 실행·예약, 5분 주기 작업(`/api/cron`) — 설정은 `.env.example` | |
 | Workflow 저장·목록·이름 바꾸기·삭제, 동시 저장 충돌 알림 (`/api/workflows`) | |
 | Workflow 편집기: 노드 10종 추가(목록·끌어 놓기), 연결·재연결, 삭제, 실행 취소, 휴대폰 화면 | |
 | Workflow 검증: Validate 버튼, 고칠 때마다 다시 검사, 문제 노드 표시 (`POST /api/workflows/:id/validate`) | |
 | 노드 속성: 이름, 노드별 설정, 입력값 검사, Switch 갈래 추가·삭제 | |
-| `GET /api/health` | 외부 연동 (9단계) |
+| `GET /api/health` | |
 | 로그인 화면, 서버 토큰 검증 `GET /api/me` | 초대 메일 (지금은 가입한 이메일로만 추가) |
 | 그룹 만들기·멤버 추가·역할 변경 (`/api/groups`) | |
 
@@ -96,6 +97,7 @@ flowbuilder/
 
 ## 주요 변경 사항
 
+- 2026-11-17 · v0.9.0 · 9단계 외부 연동 (GAS · GitHub Actions · Webhook · 예약 실행)
 - 2026-11-16 · v0.8.0 · 8단계 실행 엔진
 - 2026-11-16 · v0.7.0 · 7단계 Workflow 검증 (Validator)
 - 2026-11-16 · v0.6.0 · 6단계 Workflow 저장 (MongoDB)

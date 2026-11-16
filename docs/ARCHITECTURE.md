@@ -3,7 +3,7 @@
 목표 구조는 [FLOWBUILDER_DESIGN.md](FLOWBUILDER_DESIGN.md) 2장을 따릅니다.
 이 문서는 **지금 실제로 구현된 것**만 적습니다. 구현이 바뀌면 이 문서도 같이 고칩니다.
 
-## 현재 구현 (v0.8.0, 8단계)
+## 현재 구현 (v0.9.0, 9단계)
 
 ```mermaid
 flowchart LR
@@ -85,7 +85,10 @@ flowchart LR
 | DB 연결 | `api/_lib/db.js` | 구현 (MongoDB Atlas) |
 | 실행 엔진 | `api/_lib/executions.js` | 구현 (나눠서 진행, 잠금, 취소, 기록 정리) |
 | 노드별 실행·입력값 바꾸기 | `api/_lib/engine/executors.js`, `api/_lib/engine/template.js` | 구현 |
-| Runner Adapter | `api/_lib/runners/index.js`, `api/_lib/runners/http.js` | HTTP 구현 (내부 주소 막기). GAS·GitHub는 9단계 |
+| Runner Adapter | `api/_lib/runners/{index,http,gas,github}.js` | HTTP·GAS·GitHub Actions 구현 (내부 주소 막기, GitHub은 상태 확인으로 기다림) |
+| 인증정보 | `api/credentials.js`, `api/_lib/credentials.js`, `api/_lib/crypto.js`, `src/pages/Credentials.jsx` | 구현 (AES-256-GCM, 키는 `CREDENTIALS_KEY`) |
+| Webhook·자동 실행·예약 | `api/hooks.js`, `api/_lib/automation.js`, `api/workflows.js`(activate·webhook), `src/editor/WebhookAddress.jsx` | 구현 |
+| 주기 작업 | `api/cron.js`, `.github/workflows/flowbuilder-tick.yml` | 구현 (GitHub Actions가 5분마다 호출) |
 | 실행 API | `api/executions.js`, `api/workflows.js`(run) | 구현 |
 | 실행 결과 창·Run 창·노드 실행 표시 | `src/editor/ExecutionPanel.jsx`, `src/editor/RunDialog.jsx`, `src/editor/runContext.js` | 구현 |
 

@@ -67,6 +67,15 @@ const ERROR_TEXT = {
   INVALID_TRIGGER: '시작할 Trigger를 찾을 수 없습니다.',
   EXECUTION_NOT_FOUND: '실행 기록이 없거나, 그 Workflow가 속한 그룹의 멤버가 아닙니다.',
   ALREADY_FINISHED: '이미 끝난 실행입니다.',
+  CREDENTIALS_NOT_CONFIGURED: '서버에 CREDENTIALS_KEY가 아직 등록되지 않아 인증정보를 쓸 수 없습니다.',
+  CREDENTIAL_NOT_FOUND: '인증정보가 없거나 삭제됐습니다.',
+  INVALID_CREDENTIAL_TYPE: '인증정보 종류가 올바르지 않습니다.',
+  SECRET_REQUIRED: '비밀값을 입력해 주세요.',
+  INVALID_HEADER_NAME: '헤더 이름은 영문·숫자·하이픈(-)만 쓸 수 있습니다.',
+  TOO_MANY_CREDENTIALS: '이 그룹에 인증정보가 너무 많습니다(최대 50개). 안 쓰는 것을 지운 뒤 다시 시도하세요.',
+  INVALID_ACTIVE: '자동 실행 값이 올바르지 않습니다.',
+  NODE_ID_REQUIRED: '노드를 찾을 수 없습니다.',
+  WEBHOOK_NODE_NOT_FOUND: 'Webhook 노드를 찾을 수 없습니다. 먼저 Save 하세요.',
 };
 
 // apiFetch 결과를 사람이 읽을 문장으로 바꾼다.
