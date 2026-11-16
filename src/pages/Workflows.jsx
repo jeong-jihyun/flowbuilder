@@ -142,8 +142,8 @@ export default function Workflows() {
       <ConnectDialog
         open={connecting}
         onClose={() => setConnecting(false)}
-        onDone={({ workflow }) => {
-          if (workflow) navigate(`/workflows/${workflow.id}`);
+        onDone={({ workflow, openEditor }) => {
+          if (workflow && openEditor) navigate(`/workflows/${workflow.id}`);
         }}
       />
       <SaveWorkflowDialog

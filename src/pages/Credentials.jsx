@@ -131,6 +131,7 @@ export default function Credentials() {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [connectKind, setConnectKind] = useState(undefined);
   const navigate = useNavigate();
   const [removing, setRemoving] = useState(null);
 
@@ -173,7 +174,7 @@ export default function Credentials() {
         </Typography>
         {canManage && (
           <>
-            <Button variant="outlined" onClick={() => setConnecting(true)}>
+            <Button variant="outlined" onClick={() => { setConnectKind(undefined); setConnecting(true); }}>
               연동 추가 (GAS·깃허브 액션)
             </Button>
             <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)}>
@@ -192,12 +193,28 @@ export default function Credentials() {
         </Alert>
       )}
 
+      {canManage && list && !list.some((c) => c.type === 'gasSecret' || c.type === 'githubToken') && (
+        <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, mb: 2 }}>
+          {[
+            ['gas', '구글 앱스 스크립트 견본', '구글 시트·메일 등을 다루는 가벼운 작업. 코드는 복사해서 붙여 넣기만 하면 됩니다.'],
+            ['github', '깃허브 액션 견본', '내 저장소의 빌드·배포 같은 긴 작업 실행. yml 파일도 복사해서 쓸 수 있습니다.'],
+          ].map(([k, t, d]) => (
+            <Paper key={k} variant="outlined" sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <Typography sx={{ fontWeight: 700 }}>{t}</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ flexGrow: 1 }}>{d}</Typography>
+              <Typography variant="caption" color="text.secondary">이름만 정하면 견본 워크플로우가 만들어지고, 주소·비밀값은 나중에 채워도 됩니다.</Typography>
+              <Button variant="contained" onClick={() => { setConnectKind(k); setConnecting(true); }}>견본으로 시작</Button>
+            </Paper>
+          ))}
+        </Box>
+      )}
+
       {list === null && !error ? (
         <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
       ) : list && list.length === 0 ? (
-        <Alert severity="info">등록된 인증정보가 없습니다. {canManage ? '"등록"을 눌러 추가하세요.' : '그룹의 소유자·관리자에게 등록을 요청하세요.'}</Alert>
+        <Alert severity="info">등록된 인증정보가 없습니다. {canManage ? '위 견본으로 시작하세요.' : '그룹의 소유자·관리자에게 등록을 요청하세요.'}</Alert>
       ) : (
         list && (
           <Paper variant="outlined">
@@ -251,10 +268,11 @@ export default function Credentials() {
       />
       <ConnectDialog
         open={connecting}
+        initialKind={connectKind}
         onClose={() => setConnecting(false)}
-        onDone={({ workflow }) => {
+        onDone={({ workflow, openEditor }) => {
           load();
-          if (workflow) navigate(`/workflows/${workflow.id}`);
+          if (workflow && openEditor) navigate(`/workflows/${workflow.id}`);
         }}
       />
       <Dialog open={!!removing} onClose={() => setRemoving(null)} fullWidth maxWidth="xs">
