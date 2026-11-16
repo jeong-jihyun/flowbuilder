@@ -202,8 +202,11 @@ Workflow API 오류
 | 방식 | 주소 | 누가 | 본문 | 성공 응답 |
 | --- | --- | --- | --- | --- |
 | POST | `/api/workflows/:id/run` | 그룹의 Owner·Admin·Editor | `{ input?, triggerNodeId? }` | 201 `{ execution }` 최대 20초 진행한 상태 |
-| GET | `/api/executions?workflowId=` | 그 Workflow의 그룹 멤버 | - | 200 `{ executions: [Execution], counts: { total, failed } }` 최근 20개 |
+| GET | `/api/executions?workflowId=` | 그 Workflow의 그룹 멤버 | - | 200 `{ executions: [Execution], counts: { total, failed }, hasMore }` 최신순 20개 |
 | GET | `/api/executions` | 로그인한 누구나 | - | 200 위와 같음 (내가 속한 그룹 전체) |
+
+목록 쿼리(10단계): `status`(running·waiting·success·failed·cancelled), `before`(ISO 시각, 이보다 먼저 시작한 것 = 다음 쪽), `limit`(기본 20, 최대 50). 잘못된 값은 400 `INVALID_STATUS`·`INVALID_BEFORE`. 기록은 시작 30일 뒤 자동 삭제됩니다.
+
 | GET | `/api/executions/:id` | 그룹 멤버 | - | 200 `{ execution }` 진행 중이고 처리할 차례면 최대 8초 더 진행한 뒤 |
 | POST | `/api/executions/:id/cancel` | 그룹의 Owner·Admin·Editor | - | 200 `{ execution }` |
 

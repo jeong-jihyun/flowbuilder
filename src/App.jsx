@@ -10,6 +10,7 @@ import Groups from './pages/Groups.jsx';
 import GroupDetail from './pages/GroupDetail.jsx';
 import Workflows from './pages/Workflows.jsx';
 import Credentials from './pages/Credentials.jsx';
+import Executions from './pages/Executions.jsx';
 import { MENU } from './menu.js';
 import { AUTH_ENABLED } from './lib/authConfig.js';
 
@@ -37,6 +38,7 @@ function Pages() {
           <Route path="/workflows" element={<Workflows />} />
           <Route path="/workflows/:id" element={<WorkflowDetail />} />
           <Route path="/credentials" element={<Credentials />} />
+          <Route path="/executions" element={<Executions />} />
           {MENU.filter((m) => !m.ready).map((m) => (
             <Route
               key={m.path}

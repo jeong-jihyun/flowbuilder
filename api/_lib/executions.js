@@ -277,7 +277,12 @@ export async function cancelExecution(db, userId, id) {
 }
 
 // 목록: workflowId 를 주면 그 Workflow의 최근 20개, 아니면 내 그룹 전체의 최근 20개 + 개수
-export async function listExecutions(db, userId, { workflowId } = {}) {
+const STATUSES = ['running', 'waiting', 'success', 'failed', 'cancelled'];
+export const LIST_PAGE = 20;
+export const LIST_MAX = 50;
+
+// 목록: 최신순. status(상태 거르기), before(이 시각보다 먼저 시작한 것, 다음 쪽), limit(최대 50)
+export async function listExecutions(db, userId, { workflowId, status, before, limit } = {}) {
   let filter;
   if (workflowId) {
     const { wf } = await loadWithRole(db, userId, workflowId, 'view');
@@ -286,10 +291,23 @@ export async function listExecutions(db, userId, { workflowId } = {}) {
     const roles = await myRoles(db, userId);
     filter = { groupId: { $in: [...roles.keys()].map((g) => toObjectId(g)) } };
   }
-  const [list, total, failed] = await Promise.all([
-    executions(db).find(filter, { projection: { graph: 0, queue: 0, input: 0 } }).sort({ createdAt: -1 }).limit(20).toArray(),
-    executions(db).countDocuments(filter),
-    executions(db).countDocuments({ ...filter, status: 'failed' }),
+  if (status !== undefined) {
+    if (!STATUSES.includes(status)) throw new ApiError(400, 'INVALID_STATUS');
+    filter.status = status;
+  }
+  const page = { ...filter };
+  if (before !== undefined) {
+    const d = new Date(before);
+    if (Number.isNaN(d.getTime())) throw new ApiError(400, 'INVALID_BEFORE');
+    page.createdAt = { $lt: d };
+  }
+  const n = Math.min(LIST_MAX, Math.max(1, Math.floor(Number(limit)) || LIST_PAGE));
+  const [rows, total, failed] = await Promise.all([
+    executions(db).find(page, { projection: { graph: 0, queue: 0, input: 0 } }).sort({ createdAt: -1 }).limit(n + 1).toArray(),
+    executions(db).countDocuments(workflowId ? { workflowId: filter.workflowId } : { groupId: filter.groupId }),
+    executions(db).countDocuments({ ...(workflowId ? { workflowId: filter.workflowId } : { groupId: filter.groupId }), status: 'failed' }),
   ]);
-  return { executions: list.map((ex) => view(ex)), counts: { total, failed } };
+  const list = rows.slice(0, n);
+  const hasMore = rows.length > n;
+  return { executions: list.map((ex) => view(ex)), counts: { total, failed }, hasMore };
 }

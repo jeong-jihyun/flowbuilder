@@ -52,7 +52,7 @@ function preview(value) {
   return text.length > 2000 ? `${text.slice(0, 2000)}…` : text;
 }
 
-function StepRow({ step, branchLabel, onPick }) {
+export function StepRow({ step, branchLabel, onPick }) {
   const [open, setOpen] = useState(false);
   const hasDetail = step.output !== undefined || step.error;
   const secondary = [

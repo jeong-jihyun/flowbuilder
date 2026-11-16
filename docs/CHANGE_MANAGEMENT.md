@@ -11,6 +11,41 @@
 
 ---
 
+## 2026-11-17 · v0.10.0 · 10단계 실행 기록 화면과 30일 자동 삭제
+
+| 항목 | 내용 |
+| --- | --- |
+| 변경일 | 2026-11-17 |
+| 작업자 | Claude (AI), 요청: 정지현 |
+| 변경 목적 | 설계 문서 12장 개발 순서의 10단계. 5장 Executions 메뉴, 용량 정책(30일 자동 삭제) |
+| 변경 파일 | 신규: `src/pages/Executions.jsx` / 수정: `api/_lib/executions.js`(목록: 상태 거르기·다음 쪽·개수), `api/executions.js`, `api/_lib/db.js`(TTL 인덱스), `src/editor/ExecutionPanel.jsx`(StepRow 공개), `src/menu.js`, `src/App.jsx`, `src/lib/api.js`, `package.json`, `package-lock.json`, `README.md`, `docs/*` |
+| 영향 범위 | Executions 메뉴(목록·상태 거르기·더 보기·노드별 결과 창). `GET /api/executions`에 `status`·`before`·`limit` 추가, 응답에 `hasMore` 추가(기존 응답과 호환). `executions`에 `createdAt` TTL 인덱스: 시작 30일 뒤 기록이 자동 삭제됨 |
+| 배포 상태 | 미배포 (푸시·배포 전) |
+| 롤백 방법 | 이전 배포로 되돌리기 또는 `git revert`. TTL 인덱스는 DB에 남으므로 기록을 오래 두려면 `executions`의 `createdAt_1` 인덱스를 삭제해야 함 |
+
+설계와 달라진 점
+
+| 항목 | 설계 | 구현 | 이유 |
+| --- | --- | --- | --- |
+| 노드별 로그 컬렉션 | `execution_logs` 따로 둠 | 따로 두지 않고 `executions.steps`에 둠 | 8단계에서 이미 한 문서에 저장 중이고 노드 결과는 2KB로 제한됨. 용량 정책(30일)은 같은 TTL로 충족 |
+
+검증 결과
+
+| 구분 | 항목 | 결과 |
+| --- | --- | --- |
+| 수행함 | `npm run build` | 통과 |
+| 수행함 | 목록 로직 8개 (가짜 DB): 20개씩·`hasMore`, 다음 쪽(`before`), 상태 거르기, 개수(다른 그룹 제외), `limit` 최대 50, 잘못된 `status`·`before`는 400 | 통과 |
+| 수행 안 함 | 실제 MongoDB에서 TTL 인덱스 생성과 실제 삭제 (삭제는 MongoDB가 약 1분 간격으로 처리) | **미확인** |
+| 수행 안 함 | Executions 화면을 로그인한 상태에서 보기, 휴대폰 폭 | **미확인** (빌드만 통과) |
+
+미완료 항목
+
+- 실패 시 재시도(retrying), 오류 갈래
+- Settings 메뉴 (무엇을 둘지 미정)
+- 11~12단계
+
+---
+
 ## 2026-11-17 · v0.9.0 · 9단계 외부 연동 (GAS · GitHub Actions · Webhook · 예약 실행)
 
 | 항목 | 내용 |

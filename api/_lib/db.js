@@ -23,6 +23,8 @@ async function ensureIndexes(db) {
     db.collection('webhook_tokens').createIndex({ workflowId: 1, nodeId: 1 }),
     db.collection('executions').createIndex({ status: 1, resumeAt: 1 }),
     db.collection('workflows').createIndex({ status: 1 }),
+    // 10단계: 실행 기록은 시작 30일 뒤 자동 삭제 (무료 DB 512MB 보호)
+    db.collection('executions').createIndex({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 3600 }),
   ]);
 }
 
