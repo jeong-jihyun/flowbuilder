@@ -9,14 +9,15 @@
 
 접속 주소: https://flowbuilder-roan.vercel.app
 
-**6단계(Workflow 저장) 완료** — 전체 12단계 중 6단계. 그린 흐름을 그룹 안에 저장하고 Workflows 목록에서 관리합니다. Viewer는 보기만 할 수 있습니다.
+**7단계(Workflow 검증) 완료** — 전체 12단계 중 7단계. Validate 버튼으로 시작점·연결·순환·필수 설정 문제를 찾고, 결과를 누르면 그 노드로 이동합니다.
 
 | 되는 것 | 아직 안 되는 것 |
 | --- | --- |
-| 화면 틀(상단바, 메뉴, PC/모바일 전환) | 흐름 검증 (7단계) |
+| 화면 틀(상단바, 메뉴, PC/모바일 전환) | 실행 (8단계) |
 | Dashboard: Workflow 수·최근 Workflow (실행 수는 8단계 이후) | |
 | Workflow 저장·목록·이름 바꾸기·삭제, 동시 저장 충돌 알림 (`/api/workflows`) | |
-| Workflow 편집기: 노드 10종 추가(목록·끌어 놓기), 연결·재연결, 삭제, 실행 취소, 휴대폰 화면 | 검증·실행 (7~8단계) |
+| Workflow 편집기: 노드 10종 추가(목록·끌어 놓기), 연결·재연결, 삭제, 실행 취소, 휴대폰 화면 | |
+| Workflow 검증: Validate 버튼, 고칠 때마다 다시 검사, 문제 노드 표시 (`POST /api/workflows/:id/validate`) | |
 | 노드 속성: 이름, 노드별 설정, 입력값 검사, Switch 갈래 추가·삭제 | |
 | `GET /api/health` | 외부 연동 (9단계) |
 | 로그인 화면, 서버 토큰 검증 `GET /api/me` | 초대 메일 (지금은 가입한 이메일로만 추가) |
@@ -48,6 +49,7 @@ npm run build    # 배포용 파일을 dist 폴더에 생성
 
 ```text
 flowbuilder/
+├── shared/              화면과 서버가 같이 쓰는 코드 (노드 종류·설정 규칙, 검증)
 ├── api/                 서버 API (Vercel Functions)
 │   ├── _lib/                   공통 코드 (주소로 노출 안 됨)
 │   │   ├── auth.js             토큰 검증
@@ -89,6 +91,7 @@ flowbuilder/
 
 ## 주요 변경 사항
 
+- 2026-11-16 · v0.7.0 · 7단계 Workflow 검증 (Validator)
 - 2026-11-16 · v0.6.0 · 6단계 Workflow 저장 (MongoDB)
 - 2026-11-16 · v0.5.0 · 5단계 노드 속성 관리 (Properties)
 - 2026-11-16 · v0.4.0 · 4단계 Workflow 편집기

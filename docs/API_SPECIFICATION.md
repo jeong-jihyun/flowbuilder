@@ -173,10 +173,31 @@ Workflow API 오류
 
 그룹 API 변경: `DELETE /api/groups/:id`는 이제 그 그룹의 Workflow도 함께 지웁니다.
 
+### POST /api/workflows/:id/validate (7단계)
+
+저장된 버전을 검증합니다. 그룹 멤버면 누구나(Viewer 포함). 본문 없음.
+
+응답 200
+
+```json
+{
+  "ok": true,
+  "validation": {
+    "version": 3,
+    "ok": false,
+    "errors": [{ "level": "error", "code": "INVALID_PARAM", "message": "\"HTTP Request\" · 주소 (URL): 꼭 넣어야 합니다", "nodeId": "action_1" }],
+    "warnings": [{ "level": "warning", "code": "OPEN_BRANCH", "message": "...", "nodeId": "condition_1" }]
+  }
+}
+```
+
+- `validation.ok`는 오류가 없을 때 true (경고는 있어도 됨). 규칙과 code 목록은 설계 문서 7.3.
+- `nodeId`·`edgeId`는 문제 위치(있을 때만).
+- 오류: 404 `WORKFLOW_NOT_FOUND`(없거나 멤버 아님), 405(POST가 아님)
+
 ## 예정 API (아직 없음, 구현할 때 확정)
 
 | 단계 | 주소 | 용도 |
 | --- | --- | --- |
-| 7 | `/api/workflows/:id/validate` | 검증 |
 | 8 | `/api/workflows/:id/run`, `/api/executions/:id` | 실행·상태 |
 | 9 | `/api/callbacks/runner` | 외부 실행기 결과 수신 |

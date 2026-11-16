@@ -1,8 +1,9 @@
-/* 편집기 전용 모양. React Flow 기본 스타일 위에 덧씌운다. */
+/* 편집기 전용 모양. React Flow 기본 스타일 위에 덧씌운다.
+   노드 테두리(굵기·색·모양)는 상태에 따라 바뀌므로 WorkflowNode.jsx 에서 정한다.
+   여기서 border 를 쓰면 그 값을 덮어쓴다. */
 .fb-node {
   width: 200px;
   padding: 10px 12px;
-  border: 2px solid;
   border-radius: 8px;
   background: #fff;
 }

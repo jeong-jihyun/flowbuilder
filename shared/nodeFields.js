@@ -1,4 +1,5 @@
 // 노드별 설정 항목(5단계). 속성 패널은 이 표를 보고 입력칸을 만든다.
+// 화면(src/editor)과 서버(api/_lib, 7단계 검증)가 같이 쓴다. 화면 라이브러리(MUI 등)를 가져오지 않는다.
 // 값은 node.data.params 에 저장한다. 비밀번호·토큰 같은 인증정보는 여기 넣지 않는다(9단계 Credentials).
 //
 // 필드 모양: { key, label, type, default, required, options, min, max, pattern, placeholder, help, showIf }

@@ -4,7 +4,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { CATEGORIES, NODE_KINDS } from './nodeCatalog.js';
-import { MAX_SWITCH_CASES, NODE_FIELDS, fieldError, paramsOf, visibleFields } from './nodeFields.js';
+import { MAX_SWITCH_CASES, NODE_FIELDS, fieldError, paramsOf, visibleFields } from '../../shared/nodeFields.js';
 
 export const NAME_MAX = 40;
 

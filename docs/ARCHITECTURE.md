@@ -3,7 +3,7 @@
 목표 구조는 [FLOWBUILDER_DESIGN.md](FLOWBUILDER_DESIGN.md) 2장을 따릅니다.
 이 문서는 **지금 실제로 구현된 것**만 적습니다. 구현이 바뀌면 이 문서도 같이 고칩니다.
 
-## 현재 구현 (v0.6.0, 6단계)
+## 현재 구현 (v0.7.0, 7단계)
 
 ```mermaid
 flowchart LR
@@ -20,6 +20,8 @@ flowchart LR
     WAPI --> WSVC["api/_lib/workflows.js: 모양 검사·버전 확인"]
     WSVC --> RBAC
     WSVC --> DB2[("MongoDB: workflows")]
+    EDITOR -->|Validate| VAL["shared/validator.js"]
+    WSVC -->|/validate| VAL
     USER --> API["/api/health (누구나)"]
     DASH -->|토큰 첨부| ME["/api/me"]
     ME --> AUTH["api/_lib/auth.js: 토큰 검증"]
@@ -54,7 +56,10 @@ flowchart LR
 | 실행 취소·다시 실행 | `src/editor/useHistory.js` | 구현 (최근 50번) |
 | 임시 저장 | `src/editor/draftStorage.js` | 구현 (6단계에서 서버 저장으로 교체) |
 | Properties 패널 | `src/editor/PropertiesPanel.jsx` | 구현 (넓은 화면은 오른쪽, 그 외는 아래에서 올라오는 창) |
-| 노드별 설정 항목·검사·요약 | `src/editor/nodeFields.js` | 구현 (설계 4.3) |
+| 노드별 설정 항목·검사·요약 | `shared/nodeFields.js` | 구현 (설계 4.3, 화면·서버 공용) |
+| 노드 종류·출구 | `shared/nodeKinds.js` (아이콘은 `src/editor/nodeCatalog.js`) | 구현 (화면·서버 공용) |
+| Workflow 검증 | `shared/validator.js` | 구현 (설계 7.3, 화면·서버 공용) |
+| 검증 결과 패널·노드 표시 | `src/editor/ValidationPanel.jsx`, `src/editor/validationContext.js` | 구현 |
 | 하단 실행 결과 패널 | - | 미구현 (8·10단계) |
 | 상태 확인 API | `api/health.js` | 구현 |
 | 로그인 화면 | `src/pages/SignInPage.jsx` | 구현 (실제 키 검증 전) |
@@ -92,6 +97,9 @@ flowchart LR
 | 보기 전용은 편집기 한 곳에서 처리 (끌기·잇기·삭제 키·입력칸 막음) | Viewer 화면을 따로 만들지 않고, 서버도 저장을 막음(403) |
 | 저장 안 된 변경은 "불러온/저장한 모습"과 비교해 판단 | 바꿨다가 되돌리면 저장할 것이 없는 상태로 돌아가게 |
 | API 공통 처리(로그인·DB·오류)를 `_lib/http.js`로 모음 | API 파일마다 같은 코드가 늘지 않게 |
+| 검증·노드 규칙을 `shared/`에 두고 화면과 서버가 같이 씀 | 화면에서 통과한 흐름이 서버(8단계 실행 전)에서 다르게 판단되지 않게. `shared/`에는 화면 라이브러리를 넣지 않음 |
+| 검증 결과 창이 열려 있으면 고칠 때마다 다시 검사 | 고치고 다시 Validate를 누를 필요 없이 바로 확인 |
+| 노드 테두리는 CSS 파일이 아니라 컴포넌트에서만 정함 | CSS 파일의 `border`가 선택·검증 표시 색을 덮어쓰던 문제(4단계부터) 해결 |
 | 모바일은 메뉴를 Drawer로 전환 (기준: 화면 폭 900px) | 설계 문서 3.3 모바일 요구 |
 | `vercel.json`에서 `/api/`를 뺀 모든 주소를 `index.html`로 연결 | 새로고침해도 화면이 뜨게 하려고 |
 | Clerk 패키지는 `@clerk/react`, `@clerk/backend` | 예전 `@clerk/clerk-react`는 지원 종료 |

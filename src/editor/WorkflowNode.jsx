@@ -3,7 +3,8 @@ import { Handle, Position, useUpdateNodeInternals } from '@xyflow/react';
 import { Box, Typography } from '@mui/material';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { CATEGORIES, NODE_KINDS, outputsOf } from './nodeCatalog.js';
-import { countProblems, summaryOf } from './nodeFields.js';
+import { countProblems, summaryOf } from '../../shared/nodeFields.js';
+import { useNodeIssue } from './validationContext.js';
 
 // 캔버스에 그려지는 노드 한 개.
 // 위쪽 점(들어오는 선)은 Trigger에는 없다. 아래쪽 점(나가는 선)은 노드 종류마다 개수가 다르다.
@@ -12,6 +13,8 @@ function WorkflowNode({ id, data, selected }) {
   const node = { id, data };
   const outputs = def ? outputsOf(node) : [];
   const outputKey = outputs.map((o) => o.id).join('|');
+  // 검증(Validate)에서 문제가 나온 노드는 빨강(오류)·주황(경고) 테두리
+  const issue = useNodeIssue(id);
 
   // Switch 갈래가 늘거나 줄면 React Flow에 연결점이 바뀌었다고 알려야 선이 제자리에 붙는다
   const updateNodeInternals = useUpdateNodeInternals();
@@ -21,7 +24,7 @@ function WorkflowNode({ id, data, selected }) {
 
   if (!def) {
     return (
-      <Box className="fb-node" sx={{ borderColor: 'error.main' }}>
+      <Box className="fb-node" sx={{ border: 2, borderColor: 'error.main' }}>
         <Typography variant="body2" color="error">
           알 수 없는 노드: {String(data.kind)}
         </Typography>
@@ -38,8 +41,10 @@ function WorkflowNode({ id, data, selected }) {
     <Box
       className="fb-node"
       sx={{
-        borderColor: selected ? category.color : 'divider',
+        borderColor: issue === 'error' ? 'error.main' : issue === 'warning' ? 'warning.main' : selected ? category.color : 'divider',
         boxShadow: selected ? `0 0 0 2px ${category.color}40` : 1,
+        borderWidth: 2,
+        borderStyle: issue ? 'dashed' : 'solid',
         minWidth: outputs.length > 3 ? outputs.length * 52 : undefined,
       }}
     >

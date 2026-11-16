@@ -37,6 +37,8 @@ export default function EditorToolbar({
   readOnly,
   onSave,
   canSave,
+  onValidate,
+  issueCount,
   saving,
   dirty,
   onDelete,
@@ -94,7 +96,18 @@ export default function EditorToolbar({
         <ToolButton compact={compact} icon={<RestartAltIcon />} label="Example" tip="예시 흐름으로 되돌리기 (실행 취소 가능)" onClick={onReset} />
       )}
       {sep}
-      <ToolButton compact={compact} icon={<RuleIcon />} label="Validate" tip="검증은 7단계에서 만듭니다" disabled />
+      <ToolButton
+        compact={compact}
+        // 검증 결과 창이 열려 있으면 오류 수를 표시한다
+        icon={
+          <Badge color="error" badgeContent={issueCount} invisible={!issueCount}>
+            <RuleIcon />
+          </Badge>
+        }
+        label="Validate"
+        tip="흐름 검사: 시작점, 연결, 순환, 필수 설정"
+        onClick={onValidate}
+      />
       <ToolButton compact={compact} icon={<PlayArrowIcon />} label="Run" tip="실행은 8단계에서 만듭니다" disabled />
       <ToolButton compact={compact} icon={<PublishIcon />} label="Publish" tip="게시는 아직 만들지 않았습니다 (실행 엔진 이후)" disabled />
     </Box>

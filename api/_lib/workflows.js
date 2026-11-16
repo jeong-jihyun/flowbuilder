@@ -3,6 +3,7 @@
 import { ApiError } from './errors.js';
 import { myRoles, requireGroupAccess, toObjectId } from './groups.js';
 import { can, permissionsOf } from './roles.js';
+import { validateWorkflow } from '../../shared/validator.js';
 
 // 무료 DB(512MB)를 지키기 위한 한도
 export const LIMITS = {
@@ -208,6 +209,12 @@ export async function updateWorkflow(db, userId, id, input = {}) {
   );
   if (!updated) throw new ApiError(409, 'VERSION_CONFLICT', `최신 버전 ${wf.version}`);
   return view(updated, role, { full: true });
+}
+
+// 저장된 버전을 검증한다 (7단계). 멤버면 누구나. 8단계 실행 전에도 같은 검사를 한다.
+export async function validateSavedWorkflow(db, userId, id) {
+  const { wf } = await loadWithRole(db, userId, id, 'view');
+  return { version: wf.version, ...validateWorkflow(wf.nodes, wf.edges) };
 }
 
 export async function deleteWorkflow(db, userId, id) {

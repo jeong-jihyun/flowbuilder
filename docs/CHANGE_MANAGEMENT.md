@@ -11,6 +11,59 @@
 
 ---
 
+## 2026-11-16 · v0.7.0 · 7단계 Workflow 검증 (Validator)
+
+| 항목 | 내용 |
+| --- | --- |
+| 변경일 | 2026-11-16 |
+| 작업자 | Claude (AI), 요청: 정지현 |
+| 변경 목적 | 설계 문서 12장 개발 순서의 7단계. 3.2 Toolbar의 Validate, 4.2 "실행 흐름 검증", 7.1 실행 전 "Workflow 유효성 검사" |
+| 변경 파일 | 신규: `shared/validator.js`, `shared/nodeKinds.js`, `src/editor/ValidationPanel.jsx`, `src/editor/validationContext.js` / 이동: `src/editor/nodeFields.js` → `shared/nodeFields.js` / 수정: `src/editor/nodeCatalog.js`(공용 목록 + 아이콘), `src/editor/FlowEditor.jsx`(검증 상태·패널·노드 이동), `src/editor/EditorToolbar.jsx`(Validate 켜기), `src/editor/WorkflowNode.jsx`(문제 노드 테두리, 테두리 스타일을 컴포넌트로), `src/editor/editor.css`(border 제거), `src/editor/PropertiesPanel.jsx`(import 경로), `api/workflows.js`, `api/_lib/workflows.js`(검증 API), `package.json`, `package-lock.json`, `README.md`, `docs/*` |
+| 영향 범위 | Workflow 편집기(새·저장된 화면 모두), 새 API `POST /api/workflows/:id/validate`. DB 변경 없음 |
+| 배포 상태 | 배포 전 |
+| 롤백 방법 | Vercel에서 이전 배포(커밋 8a36ab2)로 되돌리기, 또는 `git revert`. 데이터 변경이 없어 되돌려도 영향 없음 |
+
+설계와 달라진 점 (설계 문서 v1.6에 반영함)
+
+| 항목 | 설계 | 구현 | 이유 |
+| --- | --- | --- | --- |
+| 검증 규칙 | "유효성 검사"만 있고 규칙 없음 | 설계 7.3에 오류 11종·경고 5종으로 정함 | 무엇을 막을지 정해야 8단계 실행 전 검사가 가능 |
+| 반복(순환) 흐름 | 정의 없음 | 오류로 막음 | 실행 엔진이 반복을 지원하기 전까지 무한 실행을 막기 위해 |
+| Trigger 여러 개 | 정의 없음 | 허용(경고) | 수동·예약 등 시작 방법을 한 Workflow에 둘 수 있게 |
+| 검증 실패 시 저장 | 정의 없음 | 저장은 허용, 실행만 막음(8단계) | 그리던 중인 흐름도 저장할 수 있어야 해서 |
+
+함께 고친 문제
+
+- 4단계부터 노드 테두리 색이 표시되지 않던 문제: `editor.css`의 `border: 2px solid`가 컴포넌트에서 정한 색(선택 표시)을 덮어쓰고 있었음. 테두리 스타일을 컴포넌트에서만 정하도록 고침. (검증 표시를 시험하다 발견, 계산된 스타일로 확인)
+
+검증 결과
+
+| 구분 | 항목 | 결과 |
+| --- | --- | --- |
+| 수행함 | `npm run build` | 통과 |
+| 수행함 | 검증 규칙 21개 항목 (정상 흐름, 빈 흐름, Trigger 없음·혼자·여러 개, 필수 설정·형식, 이름 없음, 모르는 노드, 자기 연결, Trigger로 들어오는 선, 순환·순환 경로 문구, 없는 노드로 이어진 선, 지운 Switch 갈래, 빈 갈래, 닿지 않는 노드, 중복 선, 숨겨진 칸 제외, params 없는 옛 노드) | 통과 |
+| 수행함 | 검증 API 5개 항목 (Viewer 검증 가능·저장본 기준, 비멤버 404, GET 405, 없는 하위 주소 404, 고쳐 저장 후 통과) | 통과 |
+| 수행함 | 그룹 API 52개·Workflow API 47개 다시 실행 (파일 이동 후) | 통과 |
+| 수행함 | 크롬(로그인 끈 테스트 서버): 예시 흐름 Validate → "문제가 없습니다" | 통과 |
+| 수행함 | 결과 창이 열린 채 Switch 추가 → 바로 "오류 1 · 경고 2", Validate에 빨간 숫자, Switch에 빨간 점선 테두리 | 통과 |
+| 수행함 | 결과 항목 누르기 → Switch 선택·속성 창 표시, "나눌 값" 입력 → 바로 "오류 0 · 경고 2", 테두리 주황 | 통과 |
+| 수행함 | HTTP Request → If/Else 선으로 순환 만들기 → "순환 연결이 있습니다: If / Else → HTTP Request" | 통과 |
+| 수행함 | 휴대폰 폭(390px): 결과 창이 아래쪽에, 캔버스는 위쪽에 남음 | 통과 |
+| 수행함 | 시험 중 콘솔 오류 0건 | 통과 |
+| 수행 안 함 | 배포 주소에서 저장된 Workflow 검증 (실제 로그인·DB) | 배포 후 확인 필요 |
+
+미완료 항목
+
+- 실행(Run) 전 서버 검증 연결은 8단계에서 함
+- 검증 결과는 저장하지 않음 (목록에서 "검증 통과" 표시 등은 없음)
+- 선(edge) 자체에 문제 표시는 없음. 선 문제는 그 선의 노드에 표시됨
+
+다음 작업
+
+- 8단계: 실행 엔진 (Execution Orchestrator)
+
+---
+
 ## 2026-11-16 · v0.6.0 · 6단계 Workflow 저장 (MongoDB)
 
 | 항목 | 내용 |
