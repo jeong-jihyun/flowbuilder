@@ -31,8 +31,10 @@ API가 추가·변경되면 이 문서를 같이 고칩니다.
 응답 200
 
 ```json
-{ "ok": true, "service": "flowbuilder", "time": "2026-11-16T09:00:00.000Z" }
+{ "ok": true, "service": "flowbuilder", "time": "2026-11-16T09:00:00.000Z", "db": "ok" }
 ```
+
+`db`: `ok`(연결됨) / `not_configured`(`MONGODB_URI` 없음) / `error`(연결 실패, 자세한 내용은 서버 로그에만). 3단계에서 추가.
 
 GET이 아니면 405
 

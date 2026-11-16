@@ -18,9 +18,9 @@
 | 변경일 | 2026-11-16 |
 | 작업자 | Claude (AI), 요청: 정지현 |
 | 변경 목적 | 설계 문서 12장 개발 순서의 3단계(그룹 및 권한). 그룹 저장을 위해 MongoDB 연결을 6단계에서 앞당김 |
-| 변경 파일 | 신규: `api/groups.js`, `api/_lib/db.js`, `api/_lib/roles.js`, `api/_lib/groups.js`, `api/_lib/clerkUsers.js`, `src/pages/Groups.jsx`, `src/pages/GroupDetail.jsx`, `src/lib/roles.js` / 수정: `src/lib/api.js`(JSON 본문, `useApi`, 오류 문구), `src/components/ServerAuthCheck.jsx`(`useApi` 사용), `src/App.jsx`, `src/menu.js`, `src/layout/AppShell.jsx`(하위 주소 메뉴 선택), `vercel.json`, `.env.example`, `package.json`, `package-lock.json`(`mongodb` 6.x 추가), `README.md`, `docs/*` |
+| 변경 파일 | 신규: `api/groups.js`, `api/_lib/db.js`, `api/_lib/roles.js`, `api/_lib/groups.js`, `api/_lib/clerkUsers.js`, `src/pages/Groups.jsx`, `src/pages/GroupDetail.jsx`, `src/lib/roles.js` / 수정: `api/health.js`(DB 상태 `db` 추가), `src/lib/api.js`(JSON 본문, `useApi`, 오류 문구), `src/components/ServerAuthCheck.jsx`(`useApi` 사용), `src/App.jsx`, `src/menu.js`, `src/layout/AppShell.jsx`(하위 주소 메뉴 선택), `vercel.json`, `.env.example`, `package.json`, `package-lock.json`(`mongodb` 6.x 추가), `README.md`, `docs/*` |
 | 영향 범위 | My Groups 메뉴(새 화면), 새 API `/api/groups`, 새 환경변수 `MONGODB_URI`. 기존 Dashboard·편집기·로그인은 동작 변화 없음 |
-| 배포 상태 | 배포 전. MongoDB Atlas 계정·`MONGODB_URI` 등록 대기 |
+| 배포 상태 | 운영 배포 (2026-11-16) · https://flowbuilder-roan.vercel.app. Vercel Marketplace로 MongoDB Atlas 무료(M0, 512MB) `flowbuilder-db` 생성, 지역 Washington D.C.(Vercel 함수와 같은 iad1), `MONGODB_URI`가 Production·Preview에 자동 등록됨 |
 | 롤백 방법 | Vercel에서 이전 배포(커밋 bbf5df5)로 되돌리기, 또는 `git revert`. DB의 `groups`, `group_members` 컬렉션은 지워도 다른 기능에 영향 없음 |
 
 설계와 달라진 점 (설계 문서 v1.2에 반영함)
@@ -40,12 +40,12 @@
 | 수행함 | 메모리 MongoDB(mongodb-memory-server)로 그룹 API 처리 52개 항목: 만들기·목록·조회·수정·삭제, 멤버 추가·역할 변경·내보내기·나가기, 역할별 허용/거부(Owner·Admin·Editor·Viewer), 마지막 Owner 보호, 비멤버 404, 중복 추가 409, 입력값 오류 400, 없는 주소 404, 잘못된 방식 405, 인덱스 생성, 경로 해석 | 통과 |
 | 수행함 | `/api/groups` 진입점: 토큰 없음 401, 가짜 토큰 401, Clerk 키 없음 503 | 통과 |
 | 수행 안 함 | 실제 Clerk로 이메일 → 가입자 찾기 (`findUserByEmail`) | 미확인 (테스트에서는 가짜 조회 함수 사용) |
-| 수행 안 함 | 실제 MongoDB Atlas 연결, 배포 주소에서 화면으로 그룹 만들기 | 미확인 (DB 등록 후) |
+| 수행함 | 배포 주소 `/api/groups`: 토큰 없음 401, 가짜 토큰 401 | 통과 |
+| 수행 안 함 | 배포 주소에서 화면으로 그룹 만들기 | 미확인 (사용자 계정으로 직접 해야 함) |
 | 수행 안 함 | 그룹 화면을 브라우저로 눈으로 확인 | 미확인 (로그인 + API가 있어야 화면이 채워짐) |
 
 미완료 항목
 
-- MongoDB Atlas 무료 계정 생성과 `MONGODB_URI` 등록 (사용자 계정 필요)
 - 초대 메일 (가입하지 않은 사람 초대)
 - 멤버 이메일·이름은 추가할 때의 사본이라 Clerk에서 바꿔도 자동 갱신되지 않음
 - 마지막 Owner 확인과 변경이 한 번에(트랜잭션) 처리되지 않아, Owner 2명이 동시에 서로를 강등하면 Owner가 0명이 될 수 있음 (드문 경우라 보류)
@@ -53,7 +53,7 @@
 
 다음 작업
 
-- MongoDB 연결 후 배포, 실제 화면 검증
+- 실제 화면에서 그룹 만들기·멤버 추가 검증
 - 4단계: Workflow 편집기
 
 ---
