@@ -51,13 +51,22 @@ const ERROR_TEXT = {
   LAST_OWNER: '그룹에는 Owner가 한 명 이상 있어야 합니다. 다른 사람을 Owner로 만든 뒤 다시 시도하세요.',
   FORBIDDEN: '이 작업을 할 권한이 없습니다.',
   NAME_REQUIRED: '이름을 입력해 주세요.',
-  TEXT_TOO_LONG: '글자 수가 너무 많습니다. (이름 50자, 설명 200자까지)',
+  TEXT_TOO_LONG: '글자 수가 너무 많습니다. (그룹 이름 50자·설명 200자, Workflow 이름 80자·설명 300자까지)',
   INVALID_EMAIL: '이메일 형식이 올바르지 않습니다.',
   INVALID_ROLE: '역할 값이 올바르지 않습니다.',
+  WORKFLOW_NOT_FOUND: 'Workflow가 없거나, 그 Workflow가 속한 그룹의 멤버가 아닙니다.',
+  VERSION_CONFLICT: '다른 사람이 먼저 저장했습니다. 최신 내용을 불러온 뒤 다시 고쳐 주세요.',
+  VERSION_REQUIRED: '저장할 버전 정보가 없습니다. 화면을 새로고침해 주세요.',
+  INVALID_WORKFLOW: 'Workflow 모양이 올바르지 않아 저장하지 못했습니다.',
+  WORKFLOW_TOO_LARGE: 'Workflow가 너무 큽니다.',
+  TOO_MANY_WORKFLOWS: '이 그룹에 Workflow가 너무 많습니다. 안 쓰는 것을 지운 뒤 다시 시도하세요.',
+  NOT_FOUND: '없는 주소입니다.',
 };
 
 // apiFetch 결과를 사람이 읽을 문장으로 바꾼다.
 export function errorText(result) {
   if (!result.body) return '이 환경에는 서버 API가 없습니다. (내 PC에서는 npx vercel dev 로 실행)';
-  return ERROR_TEXT[result.body.error] || `요청을 처리하지 못했습니다. (${result.body.error || result.status})`;
+  const text = ERROR_TEXT[result.body.error] || `요청을 처리하지 못했습니다. (${result.body.error || result.status})`;
+  // 서버가 어디가 틀렸는지 알려 주면 덧붙인다 (예: nodes[3].position)
+  return result.body.detail ? `${text} (${result.body.detail})` : text;
 }

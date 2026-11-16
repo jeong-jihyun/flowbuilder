@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/groups/(.*)", "destination": "/api/groups?path=$1" },
+    { "source": "/api/workflows/(.*)", "destination": "/api/workflows?path=$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

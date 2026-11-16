@@ -3,7 +3,7 @@
 목표 구조는 [FLOWBUILDER_DESIGN.md](FLOWBUILDER_DESIGN.md) 2장을 따릅니다.
 이 문서는 **지금 실제로 구현된 것**만 적습니다. 구현이 바뀌면 이 문서도 같이 고칩니다.
 
-## 현재 구현 (v0.5.0, 5단계)
+## 현재 구현 (v0.6.0, 6단계)
 
 ```mermaid
 flowchart LR
@@ -12,7 +12,14 @@ flowchart LR
     CLERK -->|로그인 성공| SHELL["AppShell: 상단바 + 메뉴"]
     SHELL --> DASH["Dashboard (예시 데이터)"]
     SHELL --> EDITOR["WorkflowEditor (React Flow 편집기)"]
-    EDITOR --> DRAFT[("localStorage 임시 저장")]
+    EDITOR --> DRAFT[("localStorage: 새 Workflow 임시 저장")]
+    SHELL --> WFLIST["Workflows 목록 / WorkflowDetail"]
+    WFLIST -->|토큰 첨부| WAPI["/api/workflows (파일 1개)"]
+    EDITOR -->|첫 저장| WAPI
+    WAPI --> AUTH
+    WAPI --> WSVC["api/_lib/workflows.js: 모양 검사·버전 확인"]
+    WSVC --> RBAC
+    WSVC --> DB2[("MongoDB: workflows")]
     USER --> API["/api/health (누구나)"]
     DASH -->|토큰 첨부| ME["/api/me"]
     ME --> AUTH["api/_lib/auth.js: 토큰 검증"]
@@ -32,7 +39,14 @@ flowchart LR
 | 화면 틀 | `src/layout/AppShell.jsx` | 구현 |
 | 메뉴 목록 | `src/menu.js` | 구현 |
 | Dashboard | `src/pages/Dashboard.jsx` | 화면만 (예시 데이터) |
-| Workflow Editor | `src/pages/WorkflowEditor.jsx` | 구현 (추가·연결·재연결·삭제·실행 취소, 저장은 임시) |
+| 편집기 본체 | `src/editor/FlowEditor.jsx` | 구현 (보기 전용, 저장·Ctrl+S, 저장 안 된 변경 표시) |
+| 새 Workflow (/editor) | `src/pages/WorkflowEditor.jsx` | 구현 (임시 저장 → Save로 그룹·이름 골라 서버 저장) |
+| 저장된 Workflow (/workflows/:id) | `src/pages/WorkflowDetail.jsx` | 구현 (저장, 충돌 안내, 이름 바꾸기, 삭제) |
+| Workflow 목록 (/workflows) | `src/pages/Workflows.jsx` | 구현 (그룹 거르기, 새로 만들기) |
+| 저장 창 | `src/components/SaveWorkflowDialog.jsx` | 구현 (편집 권한 있는 그룹만) |
+| 저장용 모양 변환·비교 | `src/editor/graph.js` | 구현 |
+| Workflow API | `api/workflows.js`, `api/_lib/workflows.js` | 구현 |
+| API 공통 처리 | `api/_lib/http.js`, `api/_lib/errors.js` | 구현 (groups도 이것을 씀) |
 | 노드 목록(종류·출구) | `src/editor/nodeCatalog.js` | 구현 (설계 4.1의 10종) |
 | 노드 모양 | `src/editor/WorkflowNode.jsx`, `src/editor/editor.css` | 구현 |
 | Node Palette | `src/editor/NodePalette.jsx` | 구현 (검색, 누르기·끌어 놓기) |
@@ -73,6 +87,11 @@ flowchart LR
 | 속성 패널: 1200px 이상은 오른쪽 고정, 그보다 좁으면 "속성 편집" 버튼 → 아래 창 | 캔버스가 너무 좁아지지 않게 |
 | 같은 입력칸에 이어 친 글자는 실행 취소 한 번으로 되돌림 | 글자마다 기록하면 실행 취소를 수십 번 눌러야 해서 |
 | Switch 갈래가 바뀌면 선 글자를 고치고, 없어진 갈래의 선은 지움 | 존재하지 않는 출구에 선이 남지 않게 |
+| 저장 때 version 을 같이 보내고, 다르면 저장 거절(409) | 두 사람이 같은 Workflow를 고칠 때 한쪽 작업이 몰래 사라지지 않게 |
+| 서버가 nodes·edges 모양 검사 + 한도 | 화면을 거치지 않은 요청으로 DB가 망가지거나 512MB가 차지 않게 |
+| 보기 전용은 편집기 한 곳에서 처리 (끌기·잇기·삭제 키·입력칸 막음) | Viewer 화면을 따로 만들지 않고, 서버도 저장을 막음(403) |
+| 저장 안 된 변경은 "불러온/저장한 모습"과 비교해 판단 | 바꿨다가 되돌리면 저장할 것이 없는 상태로 돌아가게 |
+| API 공통 처리(로그인·DB·오류)를 `_lib/http.js`로 모음 | API 파일마다 같은 코드가 늘지 않게 |
 | 모바일은 메뉴를 Drawer로 전환 (기준: 화면 폭 900px) | 설계 문서 3.3 모바일 요구 |
 | `vercel.json`에서 `/api/`를 뺀 모든 주소를 `index.html`로 연결 | 새로고침해도 화면이 뜨게 하려고 |
 | Clerk 패키지는 `@clerk/react`, `@clerk/backend` | 예전 `@clerk/clerk-react`는 지원 종료 |

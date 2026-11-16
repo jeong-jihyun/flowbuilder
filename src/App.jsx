@@ -8,11 +8,13 @@ import ComingSoon from './pages/ComingSoon.jsx';
 import SignInPage from './pages/SignInPage.jsx';
 import Groups from './pages/Groups.jsx';
 import GroupDetail from './pages/GroupDetail.jsx';
+import Workflows from './pages/Workflows.jsx';
 import { MENU } from './menu.js';
 import { AUTH_ENABLED } from './lib/authConfig.js';
 
 // 편집기는 무거워서(React Flow) 그 화면에 들어갈 때만 불러온다.
 const WorkflowEditor = lazy(() => import('./pages/WorkflowEditor.jsx'));
+const WorkflowDetail = lazy(() => import('./pages/WorkflowDetail.jsx'));
 
 function Loading() {
   return (
@@ -31,6 +33,8 @@ function Pages() {
           <Route path="/editor" element={<WorkflowEditor />} />
           <Route path="/groups" element={<Groups />} />
           <Route path="/groups/:id" element={<GroupDetail />} />
+          <Route path="/workflows" element={<Workflows />} />
+          <Route path="/workflows/:id" element={<WorkflowDetail />} />
           {MENU.filter((m) => !m.ready).map((m) => (
             <Route
               key={m.path}

@@ -2,14 +2,9 @@
 // 권한이 없으면 ApiError를 던지고, api/groups.js 가 이를 응답으로 바꾼다.
 import { ObjectId } from 'mongodb';
 import { ROLES, can, canAssign, isRole, permissionsOf } from './roles.js';
+import { ApiError } from './errors.js';
 
-export class ApiError extends Error {
-  constructor(status, code) {
-    super(code);
-    this.status = status;
-    this.code = code;
-  }
-}
+export { ApiError };
 
 const NAME_MAX = 50;
 const DESCRIPTION_MAX = 200;
@@ -17,9 +12,9 @@ const DESCRIPTION_MAX = 200;
 const groups = (db) => db.collection('groups');
 const members = (db) => db.collection('group_members');
 
-function toObjectId(id) {
-  // 형식이 틀린 ID는 "없는 그룹"과 똑같이 취급한다
-  if (typeof id !== 'string' || !/^[a-f0-9]{24}$/i.test(id)) throw new ApiError(404, 'GROUP_NOT_FOUND');
+// 형식이 틀린 ID는 "없는 것"과 똑같이 취급한다
+export function toObjectId(id, notFoundCode = 'GROUP_NOT_FOUND') {
+  if (typeof id !== 'string' || !/^[a-f0-9]{24}$/i.test(id)) throw new ApiError(404, notFoundCode);
   return new ObjectId(id);
 }
 
@@ -53,6 +48,17 @@ async function requireMembership(db, groupId, userId, action) {
   if (!membership) throw new ApiError(404, 'GROUP_NOT_FOUND');
   if (!can(membership.role, action)) throw new ApiError(403, 'FORBIDDEN');
   return membership;
+}
+
+// 다른 기능(Workflow 등)에서 쓰는 그룹 권한 확인. 성공하면 내 멤버 기록을 돌려준다.
+export async function requireGroupAccess(db, groupId, userId, action) {
+  return requireMembership(db, groupId, userId, action);
+}
+
+// 내가 속한 그룹들의 { groupId(문자열) → 역할 } 표
+export async function myRoles(db, userId) {
+  const mine = await members(db).find({ userId }).toArray();
+  return new Map(mine.map((m) => [String(m.groupId), m.role]));
 }
 
 // Owner가 한 명도 안 남게 되는 변경을 막는다.
@@ -126,12 +132,12 @@ export async function updateGroup(db, userId, id, input = {}) {
   return groupView(group, membership.role);
 }
 
-// 그룹 삭제: Owner만. 멤버 기록도 함께 지운다.
-// (6단계에서 workflows가 생기면 그룹의 Workflow도 함께 정리해야 한다)
+// 그룹 삭제: Owner만. 멤버 기록과 그룹의 Workflow도 함께 지운다.
 export async function deleteGroup(db, userId, id) {
   const groupId = toObjectId(id);
   const membership = await requireMembership(db, groupId, userId, 'view');
   if (membership.role !== 'owner') throw new ApiError(403, 'FORBIDDEN');
+  await db.collection('workflows').deleteMany({ groupId });
   await members(db).deleteMany({ groupId });
   await groups(db).deleteOne({ _id: groupId });
 }

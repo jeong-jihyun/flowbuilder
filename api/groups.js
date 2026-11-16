@@ -11,8 +11,7 @@
 // POST   /api/groups/:id/members             멤버 추가 { email, role } (Owner, Admin)
 // PATCH  /api/groups/:id/members/:userId     역할 변경 { role } (Owner, Admin)
 // DELETE /api/groups/:id/members/:userId     내보내기·나가기
-import { requireUser } from './_lib/auth.js';
-import { getDb } from './_lib/db.js';
+import { apiHandler, methodNotAllowed } from './_lib/http.js';
 import { findUserByEmail, getUserProfile } from './_lib/clerkUsers.js';
 import {
   ApiError,
@@ -28,24 +27,6 @@ import {
 } from './_lib/groups.js';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function methodNotAllowed(allow) {
-  const err = new ApiError(405, 'METHOD_NOT_ALLOWED');
-  err.allow = allow;
-  return err;
-}
-
-// /api/groups 뒤의 경로를 조각으로 나눈다. 예: "abc/members/user_1" → ['abc', 'members', 'user_1']
-export function pathParts(req) {
-  let path = req.query?.path;
-  if (Array.isArray(path)) path = path.join('/');
-  if (typeof path !== 'string') {
-    // 다시쓰기(rewrite) 없이 들어온 경우를 대비해 주소에서 직접 읽는다
-    const pathname = (req.url || '').split('?')[0];
-    path = pathname.replace(/^\/api\/groups\/?/, '');
-  }
-  return path.split('/').filter(Boolean).map(decodeURIComponent);
-}
 
 // 경로와 호출 방식에 맞는 처리를 고른다. lookups 는 Clerk 사용자 조회 함수(테스트에서 바꿔 끼운다).
 export async function routeGroups({ db, userId, method, parts, body = {}, lookups }) {
@@ -96,35 +77,4 @@ export async function routeGroups({ db, userId, method, parts, body = {}, lookup
   throw methodNotAllowed('PATCH, DELETE');
 }
 
-export default async function handler(req, res) {
-  const userId = await requireUser(req, res);
-  if (!userId) return;
-
-  let db;
-  try {
-    db = await getDb();
-  } catch (err) {
-    console.error('DB 연결 실패', err);
-    return res.status(503).json({ ok: false, error: 'DB_UNAVAILABLE' });
-  }
-  if (!db) return res.status(503).json({ ok: false, error: 'DB_NOT_CONFIGURED' });
-
-  try {
-    const result = await routeGroups({
-      db,
-      userId,
-      method: req.method,
-      parts: pathParts(req),
-      body: req.body && typeof req.body === 'object' ? req.body : {},
-      lookups: { findUserByEmail, getUserProfile },
-    });
-    return res.status(result.status).json({ ok: true, ...result.body });
-  } catch (err) {
-    if (err instanceof ApiError) {
-      if (err.allow) res.setHeader('Allow', err.allow);
-      return res.status(err.status).json({ ok: false, error: err.code });
-    }
-    console.error('groups API 오류', err);
-    return res.status(500).json({ ok: false, error: 'INTERNAL_ERROR' });
-  }
-}
+export default apiHandler('/api/groups', routeGroups, { lookups: { findUserByEmail, getUserProfile } });

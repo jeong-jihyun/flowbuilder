@@ -50,11 +50,30 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 | users | 사용자 정보, Clerk ID | 6 (2단계에서는 Clerk가 보관) |
 | groups | 그룹 정보 | 3 (구현) |
 | group_members | 사용자별 그룹 권한 | 3 (구현) |
-| workflows | Workflow 정의, nodes, edges | 6 |
+| workflows | Workflow 정의, nodes, edges | 6 (구현) |
 | workflow_triggers | 실행 Trigger 설정 | 8 |
 | executions | 실행 이력 및 상태 | 8 |
 | execution_logs | 노드별 실행 로그 | 10 |
 | credentials | 외부 연동 인증정보 (평문 저장 금지) | 9 |
+
+### workflows (6단계)
+
+| 필드 | 형식 | 설명 |
+| --- | --- | --- |
+| `_id` | ObjectId | Workflow ID |
+| `groupId` | ObjectId | 속한 그룹 `groups._id` |
+| `name` | string | 1~80자 |
+| `description` | string | 0~300자 (화면에서는 아직 안 씀) |
+| `status` | string | 지금은 항상 `draft` (게시 기능 이후 `published` 등) |
+| `version` | number | 저장할 때마다 1씩 올라감. 동시 저장 충돌 확인용 |
+| `nodes`, `edges` | array | 아래 "Workflow 저장 형태" |
+| `nodeCount` | number | 목록에서 nodes 를 안 읽고 개수를 보여 주려고 |
+| `createdBy`, `updatedBy` | string | Clerk 사용자 ID |
+| `createdAt`, `updatedAt` | Date | |
+
+인덱스: `{ groupId: 1, updatedAt: -1 }` (그룹별 최근 수정 순 목록)
+
+한도(서버에서 확인): 노드 200개, 연결선 400개, nodes+edges 200KB, 그룹당 100개. 1건 최대 약 200KB × 그룹당 100개 = 그룹당 최대 약 20MB.
 
 ## Workflow 저장 형태
 
@@ -62,7 +81,7 @@ MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예�
 
 노드는 `{ id, type, position, data: { kind, label, params } }`, 연결선은 `{ id, source, target, sourceHandle, targetHandle, label? }`만 저장합니다. 화면 전용 값(선택 여부, 크기 등)은 저장하지 않습니다. 자세한 값은 설계 문서 4.1·4.3(v1.4). `params`가 없는 노드(4단계에서 만든 것)는 읽을 때 기본값으로 채웁니다.
 
-4단계에서는 DB 대신 브라우저(localStorage `flowbuilder.editorDraft.v1`)에 같은 모양으로 임시 저장합니다. 6단계에서 `workflows` 컬렉션으로 옮깁니다.
+서버에 저장하기 전의 "새 Workflow"(/editor)는 브라우저(localStorage `flowbuilder.editorDraft.v1`)에 같은 모양으로 임시 저장하고, 서버에 저장하면 지웁니다. 서버는 위치를 정수로 반올림해 저장합니다.
 
 ## 용량 정책 (2026-11-16 확정)
 

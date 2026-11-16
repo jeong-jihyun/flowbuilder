@@ -11,6 +11,58 @@
 
 ---
 
+## 2026-11-16 · v0.6.0 · 6단계 Workflow 저장 (MongoDB)
+
+| 항목 | 내용 |
+| --- | --- |
+| 변경일 | 2026-11-16 |
+| 작업자 | Claude (AI), 요청: 정지현 |
+| 변경 목적 | 설계 문서 12장 개발 순서의 6단계. 4.2 "Workflow 저장 및 불러오기", 5장 Workflow List, 원칙 2 "모든 API는 그룹 권한 검증" |
+| 변경 파일 | 신규: `api/workflows.js`, `api/_lib/workflows.js`, `api/_lib/http.js`, `api/_lib/errors.js`, `src/editor/FlowEditor.jsx`(편집기 본체를 옮겨 옴), `src/editor/graph.js`, `src/pages/Workflows.jsx`, `src/pages/WorkflowDetail.jsx`, `src/components/SaveWorkflowDialog.jsx`, `src/lib/format.js` / 수정: `api/groups.js`(공통 처리 사용), `api/_lib/groups.js`(권한 확인 함수 공개, 그룹 삭제 시 Workflow 삭제), `api/_lib/db.js`(인덱스), `vercel.json`(다시쓰기), `src/pages/WorkflowEditor.jsx`(새 Workflow 화면으로), `src/pages/Dashboard.jsx`(실제 데이터), `src/editor/EditorToolbar.jsx`, `src/editor/PropertiesPanel.jsx`(보기 전용), `src/editor/draftStorage.js`, `src/lib/api.js`, `src/App.jsx`, `src/menu.js`, `package.json`, `package-lock.json`, `README.md`, `docs/*` |
+| 영향 범위 | Workflows 메뉴(새 화면), Workflow Editor, Dashboard, 새 API `/api/workflows`, 그룹 삭제(Workflow도 지움), 그룹 API 내부 구조(동작은 같음). 새 컬렉션 `workflows` |
+| 배포 상태 | 배포 전 |
+| 롤백 방법 | Vercel에서 이전 배포(커밋 1aca43b)로 되돌리기, 또는 `git revert`. 되돌려도 `workflows` 컬렉션은 남지만 이전 버전은 읽지 않으므로 영향 없음 |
+
+설계와 달라진 점 (설계 문서 v1.5에 반영함)
+
+| 항목 | 설계 | 구현 | 이유 |
+| --- | --- | --- | --- |
+| 동시 저장 | 정의 없음 | version 확인, 다르면 409 후 "최신 불러오기" 안내 | 한쪽 작업이 몰래 덮어써지지 않게 |
+| 저장 한도 | 정의 없음 | 노드 200·선 400·200KB·그룹당 100개 | 무료 DB 512MB |
+| Workflow 삭제 권한 | 정의 없음 | 편집 권한(Owner·Admin·Editor) | 권한표의 "편집"에 포함된다고 봄. 바꾸려면 `api/_lib/workflows.js` 한 곳 |
+| 새 Workflow | 정의 없음 | 브라우저 임시 저장 → 첫 저장 때 그룹·이름 선택 | 4단계 임시 저장을 그대로 살림 |
+
+검증 결과
+
+| 구분 | 항목 | 결과 |
+| --- | --- | --- |
+| 수행함 | `npm run build` | 통과 |
+| 수행함 | 메모리 MongoDB로 Workflow API 47개 항목: 역할별 만들기·조회·저장·삭제 허용/거부, 비멤버 404, 모양 검사(배열·type·id 중복·position·params·없는 노드 연결), 크기·개수 한도, 화면 전용 필드 제거·위치 반올림, 버전 충돌 409 후 내용 유지, 이름만 바꾸기, 그룹 필터, 그룹 삭제 시 Workflow 삭제, 인덱스, 토큰 없음 401 | 통과 |
+| 수행함 | 3단계 그룹 API 52개 항목 다시 실행 (공통 처리로 바꾼 뒤) | 통과 |
+| 수행함 | 화면 시험 (실제 API 코드 + 메모리 DB + 가짜 로그인, 크롬): 새 Workflow에서 Save → 그룹·이름 고르기 → `/workflows/:id`로 이동, 임시 저장 지워짐 | 통과 |
+| 수행함 | 노드 추가 → "저장 안 된 변경 있음" → Ctrl+S → "저장됨" → 새로고침 후 노드 5개·버전 2 | 통과 |
+| 수행함 | 화면에서 고치는 사이 다른 쪽에서 먼저 저장 → 저장 시 경고, 덮어쓰지 않음 → "최신 불러오기"로 버전 3 표시 | 통과 |
+| 수행함 | Viewer로 열기: "보기 전용 (Viewer)", 노드 목록 없음, 끌기 불가, Delete 키 무시, 속성 입력칸 비활성, 이름 바꾸기·삭제 버튼 없음 | 통과 |
+| 수행함 | Workflows 목록(그룹·노드 수·수정 시각, Viewer 표시), Dashboard Workflow 수·최근 목록 | 통과 |
+| 수행함 | Viewer가 "새 Workflow" → "편집할 수 있는 그룹이 없습니다" 안내 | 통과 |
+| 수행함 | 목록에서 새로 만들기(Manual 노드 하나로 시작) → 삭제 확인 → 목록으로 돌아감 | 통과 |
+| 수행함 | 시험 중 콘솔 오류 0건 | 통과 |
+| 수행 안 함 | 실제 Clerk 로그인 + 실제 MongoDB Atlas에서 저장 | 배포 후 확인 필요 |
+| 수행 안 함 | 휴대폰 폭에서 저장·목록 화면 | 미확인 |
+
+미완료 항목
+
+- 앱 안에서 다른 메뉴로 옮겨 갈 때 저장 안 된 변경 경고 (브라우저 닫기·새로고침 때만 경고함)
+- Workflow 설명(description)은 API에는 있지만 화면에서 아직 못 바꿈
+- 게시(Publish)·버전 기록 보기 (설계 5장 Workflow Version·Publish)
+- Workflow를 다른 그룹으로 옮기기
+
+다음 작업
+
+- 7단계: Workflow 검증 (Validator)
+
+---
+
 ## 2026-11-16 · v0.5.0 · 5단계 노드 속성 관리 (Properties Panel)
 
 | 항목 | 내용 |

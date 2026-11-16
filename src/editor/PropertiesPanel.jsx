@@ -16,7 +16,7 @@ function toNumberOrText(v) {
 }
 
 // Switch 갈래 편집: 이름(선에 표시)과 일치 값
-function CasesEditor({ cases, onChange, onBlur, error }) {
+function CasesEditor({ cases, onChange, onBlur, error, readOnly }) {
   function patch(i, change) {
     onChange(cases.map((c, j) => (j === i ? { ...c, ...change } : c)));
   }
@@ -39,6 +39,7 @@ function CasesEditor({ cases, onChange, onBlur, error }) {
               value={c.label}
               onChange={(e) => patch(i, { label: e.target.value })}
               onBlur={onBlur}
+              disabled={readOnly}
               inputProps={{ maxLength: 12 }}
               error={!String(c.label).trim()}
             />
@@ -48,11 +49,12 @@ function CasesEditor({ cases, onChange, onBlur, error }) {
               value={c.match}
               onChange={(e) => patch(i, { match: e.target.value })}
               onBlur={onBlur}
+              disabled={readOnly}
             />
             <IconButton
               aria-label={`갈래 ${c.label} 삭제`}
               onClick={() => onChange(cases.filter((_, j) => j !== i))}
-              disabled={cases.length <= 1}
+              disabled={readOnly || cases.length <= 1}
             >
               <RemoveCircleOutlineIcon />
             </IconButton>
@@ -64,7 +66,7 @@ function CasesEditor({ cases, onChange, onBlur, error }) {
           {error}
         </Typography>
       )}
-      <Button size="small" startIcon={<AddIcon />} onClick={add} disabled={cases.length >= MAX_SWITCH_CASES} sx={{ mt: 1 }}>
+      <Button size="small" startIcon={<AddIcon />} onClick={add} disabled={readOnly || cases.length >= MAX_SWITCH_CASES} sx={{ mt: 1 }}>
         갈래 추가
       </Button>
       <Typography variant="caption" color="text.secondary" component="div">
@@ -74,11 +76,11 @@ function CasesEditor({ cases, onChange, onBlur, error }) {
   );
 }
 
-function FieldInput({ field, value, params, onChange, onBlur }) {
+function FieldInput({ field, value, params, onChange, onBlur, readOnly }) {
   const error = fieldError(field, value, params);
 
   if (field.type === 'cases') {
-    return <CasesEditor cases={value} onChange={onChange} onBlur={onBlur} error={error} />;
+    return <CasesEditor cases={value} onChange={onChange} onBlur={onBlur} error={error} readOnly={readOnly} />;
   }
 
   const common = {
@@ -90,6 +92,7 @@ function FieldInput({ field, value, params, onChange, onBlur }) {
     error: !!error,
     helperText: error || ' ',
     onBlur,
+    disabled: readOnly,
   };
 
   if (field.type === 'select') {
@@ -135,7 +138,8 @@ function FieldInput({ field, value, params, onChange, onBlur }) {
 
 // 오른쪽(휴대폰에서는 아래쪽) 속성 패널. 설계 3.2: Node Name, Parameters, Input, Output, Test Node.
 // onEdit(field, change): 값이 바뀔 때. onEndEdit(): 입력칸에서 빠져나갈 때(실행 취소 묶음 끊기).
-export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onClose }) {
+// readOnly: 보기 전용(Viewer). 값은 보이지만 바꿀 수 없다.
+export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onClose, readOnly = false }) {
   if (!node) {
     return (
       <Box sx={{ p: 2 }}>
@@ -143,7 +147,7 @@ export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onC
           Properties
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          노드를 하나 누르면 이름과 설정을 바꿀 수 있습니다.
+          {readOnly ? '노드를 하나 누르면 설정을 볼 수 있습니다.' : '노드를 하나 누르면 이름과 설정을 바꿀 수 있습니다.'}
         </Typography>
       </Box>
     );
@@ -178,6 +182,7 @@ export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onC
           value={node.data.label}
           onChange={(e) => onEdit('label', { label: e.target.value })}
           onBlur={onEndEdit}
+          disabled={readOnly}
           inputProps={{ maxLength: NAME_MAX }}
           error={!!nameError}
           helperText={nameError || ' '}
@@ -202,6 +207,7 @@ export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onC
               params={params}
               onChange={(v) => onEdit(f.key, { params: { ...params, [f.key]: v } })}
               onBlur={onEndEdit}
+              readOnly={readOnly}
             />
           ))}
         </Box>
@@ -218,9 +224,11 @@ export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onC
           <Typography variant="caption" color="text.secondary" sx={{ flexGrow: 1 }}>
             노드 ID: {node.id}
           </Typography>
-          <Button color="error" size="small" startIcon={<DeleteIcon />} onClick={onDelete}>
-            노드 삭제
-          </Button>
+          {!readOnly && (
+            <Button color="error" size="small" startIcon={<DeleteIcon />} onClick={onDelete}>
+              노드 삭제
+            </Button>
+          )}
         </Box>
       </Box>
     </Box>

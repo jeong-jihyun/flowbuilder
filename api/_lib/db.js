@@ -12,6 +12,8 @@ async function ensureIndexes(db) {
     db.collection('group_members').createIndex({ groupId: 1, userId: 1 }, { unique: true }),
     // "내 그룹 목록" 조회용
     db.collection('group_members').createIndex({ userId: 1 }),
+    // 그룹별 Workflow 목록(최근 수정 순)
+    db.collection('workflows').createIndex({ groupId: 1, updatedAt: -1 }),
   ]);
 }
 

@@ -3,7 +3,7 @@
 export const MENU = [
   { path: '/', label: 'Dashboard', ready: true },
   { path: '/groups', label: 'My Groups', ready: true },
-  { path: '/workflows', label: 'Workflows', ready: false, step: 6 },
+  { path: '/workflows', label: 'Workflows', ready: true },
   { path: '/editor', label: 'Workflow Editor', ready: true },
   { path: '/executions', label: 'Executions', ready: false, step: 10 },
   { path: '/credentials', label: 'Credentials', ready: false, step: 9 },

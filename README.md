@@ -9,12 +9,13 @@
 
 접속 주소: https://flowbuilder-roan.vercel.app
 
-**5단계(노드 속성) 완료** — 전체 12단계 중 5단계. 노드를 누르면 이름과 설정(주소, 조건, 예약 시간, Switch 갈래 등)을 바꿀 수 있습니다. 그린 흐름은 아직 이 기기에만 임시 저장됩니다(서버 저장은 6단계).
+**6단계(Workflow 저장) 완료** — 전체 12단계 중 6단계. 그린 흐름을 그룹 안에 저장하고 Workflows 목록에서 관리합니다. Viewer는 보기만 할 수 있습니다.
 
 | 되는 것 | 아직 안 되는 것 |
 | --- | --- |
-| 화면 틀(상단바, 메뉴, PC/모바일 전환) | Workflow 저장 (6단계) |
-| Dashboard 화면 (예시 데이터) | |
+| 화면 틀(상단바, 메뉴, PC/모바일 전환) | 흐름 검증 (7단계) |
+| Dashboard: Workflow 수·최근 Workflow (실행 수는 8단계 이후) | |
+| Workflow 저장·목록·이름 바꾸기·삭제, 동시 저장 충돌 알림 (`/api/workflows`) | |
 | Workflow 편집기: 노드 10종 추가(목록·끌어 놓기), 연결·재연결, 삭제, 실행 취소, 휴대폰 화면 | 검증·실행 (7~8단계) |
 | 노드 속성: 이름, 노드별 설정, 입력값 검사, Switch 갈래 추가·삭제 | |
 | `GET /api/health` | 외부 연동 (9단계) |
@@ -53,8 +54,11 @@ flowbuilder/
 │   │   ├── db.js               MongoDB 연결
 │   │   ├── roles.js            역할 권한표
 │   │   ├── groups.js           그룹·멤버 처리
+│   │   ├── workflows.js        Workflow 저장·검사
+│   │   ├── http.js             API 공통 처리 (로그인·DB·오류)
 │   │   └── clerkUsers.js       Clerk 사용자 조회
 │   ├── groups.js               /api/groups 전체
+│   ├── workflows.js            /api/workflows 전체
 │   ├── health.js
 │   └── me.js
 ├── src/
@@ -85,6 +89,7 @@ flowbuilder/
 
 ## 주요 변경 사항
 
+- 2026-11-16 · v0.6.0 · 6단계 Workflow 저장 (MongoDB)
 - 2026-11-16 · v0.5.0 · 5단계 노드 속성 관리 (Properties)
 - 2026-11-16 · v0.4.0 · 4단계 Workflow 편집기
 - 2026-11-16 · v0.3.0 · 3단계 그룹·권한, MongoDB 연결
