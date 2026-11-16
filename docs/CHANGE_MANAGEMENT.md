@@ -20,7 +20,7 @@
 | 변경 목적 | 설계 문서 12장 개발 순서의 6단계. 4.2 "Workflow 저장 및 불러오기", 5장 Workflow List, 원칙 2 "모든 API는 그룹 권한 검증" |
 | 변경 파일 | 신규: `api/workflows.js`, `api/_lib/workflows.js`, `api/_lib/http.js`, `api/_lib/errors.js`, `src/editor/FlowEditor.jsx`(편집기 본체를 옮겨 옴), `src/editor/graph.js`, `src/pages/Workflows.jsx`, `src/pages/WorkflowDetail.jsx`, `src/components/SaveWorkflowDialog.jsx`, `src/lib/format.js` / 수정: `api/groups.js`(공통 처리 사용), `api/_lib/groups.js`(권한 확인 함수 공개, 그룹 삭제 시 Workflow 삭제), `api/_lib/db.js`(인덱스), `vercel.json`(다시쓰기), `src/pages/WorkflowEditor.jsx`(새 Workflow 화면으로), `src/pages/Dashboard.jsx`(실제 데이터), `src/editor/EditorToolbar.jsx`, `src/editor/PropertiesPanel.jsx`(보기 전용), `src/editor/draftStorage.js`, `src/lib/api.js`, `src/App.jsx`, `src/menu.js`, `package.json`, `package-lock.json`, `README.md`, `docs/*` |
 | 영향 범위 | Workflows 메뉴(새 화면), Workflow Editor, Dashboard, 새 API `/api/workflows`, 그룹 삭제(Workflow도 지움), 그룹 API 내부 구조(동작은 같음). 새 컬렉션 `workflows` |
-| 배포 상태 | 배포 전 |
+| 배포 상태 | 운영 배포 (2026-11-16) · https://flowbuilder-roan.vercel.app/workflows · 커밋 eadbf45 |
 | 롤백 방법 | Vercel에서 이전 배포(커밋 1aca43b)로 되돌리기, 또는 `git revert`. 되돌려도 `workflows` 컬렉션은 남지만 이전 버전은 읽지 않으므로 영향 없음 |
 
 설계와 달라진 점 (설계 문서 v1.5에 반영함)
@@ -47,7 +47,9 @@
 | 수행함 | Viewer가 "새 Workflow" → "편집할 수 있는 그룹이 없습니다" 안내 | 통과 |
 | 수행함 | 목록에서 새로 만들기(Manual 노드 하나로 시작) → 삭제 확인 → 목록으로 돌아감 | 통과 |
 | 수행함 | 시험 중 콘솔 오류 0건 | 통과 |
-| 수행 안 함 | 실제 Clerk 로그인 + 실제 MongoDB Atlas에서 저장 | 배포 후 확인 필요 |
+| 수행함 | 배포 주소: `/api/health` db ok, `/api/workflows`·`/api/workflows/:id` 토큰 없이 401, `/workflows` 화면 주소 응답 | 통과 |
+| 수행함 | 배포 주소에서 사용자 로그인 토큰으로 `GET /api/workflows` 200(0개), `GET /api/groups`에서 그룹 "Group" Owner·편집 가능 (실제 Clerk + 실제 Atlas, 읽기만) | 통과 |
+| 수행 안 함 | 실제 환경에서 화면으로 저장 | 미확인 (사용자가 직접 확인. 크롬 창이 최소화돼 화면 확인 불가) |
 | 수행 안 함 | 휴대폰 폭에서 저장·목록 화면 | 미확인 |
 
 미완료 항목
