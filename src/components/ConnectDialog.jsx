@@ -162,19 +162,22 @@ export default function ConnectDialog({ open, onClose, onDone, initialKind }) {
             )
           ) : (
             <Stack sx={{ gap: 2 }}>
+              <Alert severity="success" icon={false}>
+                <b>가장 쉬운 방법:</b> 아래 “이름”만 적고 <b>[견본 만들기]</b>를 누르세요. 나머지(주소·비밀값)는 아직 몰라도 됩니다. 만든 뒤 “남은 할 일”을 따라 하나씩 채우면 됩니다.
+              </Alert>
               <TextField label="이름 (노드에서 고를 때 보임)" value={v.name} onChange={set('name')} required inputProps={{ maxLength: 50 }}
                 placeholder={kind === 'gas' ? '내 앱스 스크립트' : '내 깃허브 액션'} />
               {kind === 'gas' ? (
                 <>
                   <TextField label="웹 앱 주소 (…/exec) · 나중에 입력 가능" value={v.url} onChange={set('url')} placeholder="https://script.google.com/macros/s/.../exec"
-                    error={!!v.url && !GAS_URL.test(v.url.trim())} helperText={v.url && !GAS_URL.test(v.url.trim()) ? 'https://script.google.com/ 으로 시작해야 합니다' : '아직 없으면 비워 두세요'} />
+                    error={!!v.url && !GAS_URL.test(v.url.trim())} helperText={v.url && !GAS_URL.test(v.url.trim()) ? 'https://script.google.com/ 으로 시작해야 합니다' : '어디서? Apps Script → 배포 → 새 배포 후 나오는 “웹 앱 URL”. 아직 없으면 비워 두세요'} />
                   <TextField label="실행할 함수 이름" value={v.functionName} onChange={set('functionName')} helperText="견본 코드의 main 이 기본입니다" />
                 </>
               ) : (
                 <>
                   <TextField label="저장소 (owner/repo) · 나중에 입력 가능" value={v.repo} onChange={set('repo')} placeholder="내아이디/내저장소"
-                    error={!!v.repo && !REPO.test(v.repo.trim())} helperText={v.repo && !REPO.test(v.repo.trim()) ? 'owner/repo 모양이어야 합니다' : '아직 없으면 비워 두세요'} />
-                  <TextField label="워크플로우 파일" value={v.workflow} onChange={set('workflow')} required />
+                    error={!!v.repo && !REPO.test(v.repo.trim())} helperText={v.repo && !REPO.test(v.repo.trim()) ? 'owner/repo 모양이어야 합니다' : '어디서? 깃허브 저장소 주소의 github.com/ 뒤 두 칸 (예: jeong-jihyun/flowbuilder). 아직 없으면 비워 두세요'} />
+                  <TextField label="워크플로우 파일" value={v.workflow} onChange={set('workflow')} required helperText="저장소의 .github/workflows 안 파일 이름. 견본 yml을 올렸다면 그대로 두세요" />
                   <TextField label="브랜치" value={v.ref} onChange={set('ref')} />
                 </>
               )}
