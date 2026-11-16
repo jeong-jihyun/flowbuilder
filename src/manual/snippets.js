@@ -30,5 +30,8 @@ export const GITHUB_YML_PATH = '.github/workflows/example-dispatch.yml';
 
 // 견본 깃허브 저장소 (이 앱의 저장소에 example-dispatch.yml 이 이미 들어 있다)
 export const DEFAULT_REPO = 'jeong-jihyun/flowbuilder';
-export const GITHUB_TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new';
+// 이름·기간·Actions 권한이 미리 채워진 토큰 만들기 주소 (저장소 선택만 직접). GitHub 공식 '템플릿 URL' 방식
+export const GITHUB_TOKEN_URL =
+  'https://github.com/settings/personal-access-tokens/new?name=flowbuilder&description=FlowBuilder+%EA%B9%83%ED%97%88%EB%B8%8C+%EC%95%A1%EC%85%98+%EC%8B%A4%ED%96%89&target_name=jeong-jihyun&expires_in=90&actions=write';
+export const GAS_HOME_URL = 'https://script.google.com/home';
 export const GAS_NEW_URL = 'https://script.google.com/home/projects/create';

@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { errorText, useApi } from '../lib/api.js';
 import { CopyBlock, makeToken } from '../manual/ManualDialog.jsx';
-import { DEFAULT_REPO, GAS_CODE, GAS_NEW_URL, GITHUB_TOKEN_URL, GITHUB_YML, GITHUB_YML_PATH } from '../manual/snippets.js';
+import { DEFAULT_REPO, GAS_CODE, GAS_HOME_URL, GAS_NEW_URL, GITHUB_TOKEN_URL, GITHUB_YML, GITHUB_YML_PATH } from '../manual/snippets.js';
 
 // 연동 마법사 — 입력을 거의 하지 않고 버튼만 눌러 따라가는 방식.
 //  1) 종류 고르기  2) 미리 채워진 내용 확인 후 "이 내용으로 만들기"  3) 만든 뒤 해야 할 일을 버튼·복사로 안내
@@ -59,13 +59,14 @@ export default function ConnectDialog({ open, onClose, onDone, initialKind }) {
   const [pasteUrl, setPasteUrl] = useState('');
   const [pasteToken, setPasteToken] = useState('');
   const [saved, setSaved] = useState({}); // 안내 단계에서 저장이 끝난 항목
+  const [check, setCheck] = useState(null); // 연결 확인(시험 실행) 결과 { state: 'running'|'success'|'failed', text }
   const set = (k) => (e) => setV((o) => ({ ...o, [k]: e.target.value }));
 
   function pick(k) { setKind(k); setV(initial(k)); setEdit(false); }
 
   useEffect(() => {
     if (!open) return;
-    setError(''); setResult(null); setSaved({}); setPasteUrl(''); setPasteToken(''); setSaving(false);
+    setError(''); setResult(null); setSaved({}); setCheck(null); setPasteUrl(''); setPasteToken(''); setSaving(false);
     setKind(initialKind || null);
     if (initialKind) setV(initial(initialKind));
     setGroups(null);
@@ -129,6 +130,24 @@ export default function ConnectDialog({ open, onClose, onDone, initialKind }) {
     setSaving(false);
   }
 
+  // 연결 확인: 만든 워크플로우를 한 번 실행해 보고 결과를 바로 보여 준다
+  async function runCheck() {
+    setCheck({ state: 'running', text: '시험 실행 중… (깃허브는 끝날 때까지 최대 1분쯤 걸립니다)' });
+    const r = await api(`/workflows/${result.workflow.id}/run`, { method: 'POST', json: { input: { name: 'FlowBuilder' } } });
+    if (!r.ok) { setCheck({ state: 'failed', text: errorText(r) }); return; }
+    let ex = r.body.execution;
+    for (let i = 0; i < 40 && (ex.status === 'running' || ex.status === 'waiting'); i += 1) {
+      await new Promise((res) => setTimeout(res, 1500));
+      const g = await api(`/executions/${ex.id}`);
+      if (!g.ok) { setCheck({ state: 'failed', text: errorText(g) }); return; }
+      ex = g.body.execution;
+    }
+    if (ex.status === 'success') setCheck({ state: 'success', text: '연결이 잘 됩니다. 앞으로 이 워크플로우를 실행하면 됩니다.' });
+    else if (ex.status === 'running' || ex.status === 'waiting') setCheck({ state: 'failed', text: '아직 끝나지 않았습니다. 잠시 뒤 편집기의 실행 기록에서 확인하세요.' });
+    else setCheck({ state: 'failed', text: ex.error || '실행에 실패했습니다' });
+  }
+
+  const readyToCheck = result && (result.kind === 'gas' ? saved.url : saved.token);
   const noGroups = groups !== null && groups.length === 0 && !error;
   const title = result ? '만들어졌습니다 — 이어서 버튼만 따라가세요' : !kind ? '연동 추가' : `${KINDS[kind].label} 연동 만들기`;
 
@@ -152,6 +171,7 @@ export default function ConnectDialog({ open, onClose, onDone, initialKind }) {
                   <Typography variant="body2">왼쪽 ⚙ 프로젝트 설정 → 스크립트 속성 → “스크립트 속성 추가”. 속성에 <code>TOKEN</code>, 값에 아래 비밀값을 붙여 넣고 저장하세요. (이 창에서만 보이니 지금 복사)</Typography>
                   <CopyBlock label="비밀값 (TOKEN 값)" text={result.secret} />
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>③ 배포하고 주소 붙여넣기</Typography>
+                  <Button variant="outlined" component="a" href={GAS_HOME_URL} target="_blank" rel="noopener noreferrer">내 앱스 스크립트 프로젝트 목록 열기 (배포·승인 화면으로 가는 길)</Button>
                   <Typography variant="body2">오른쪽 위 배포 → 새 배포 → 톱니바퀴 “웹 앱” → 다음 사용자로 실행 “나”, 액세스 권한 “모든 사용자” → 배포(처음이면 “액세스 승인”). 나온 “웹 앱 URL”을 복사해 아래에 붙여 넣으세요.</Typography>
                   {saved.url ? <Alert severity="success">✔ 주소가 저장됐습니다</Alert> : (
                     <>
@@ -179,6 +199,12 @@ export default function ConnectDialog({ open, onClose, onDone, initialKind }) {
                   )}
                 </>
               )}
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>④ 연결 확인</Typography>
+              <Button variant="contained" color="success" onClick={runCheck} disabled={!readyToCheck || check?.state === 'running'}>
+                {check?.state === 'running' ? '확인하는 중…' : '연결 확인 (시험 실행)'}
+              </Button>
+              {!readyToCheck && <Typography variant="caption" color="text.secondary">위 {result.kind === 'gas' ? '③ 주소 저장' : '② 토큰 저장'}을 마치면 눌러 볼 수 있습니다.</Typography>}
+              {check && <Alert severity={check.state === 'success' ? 'success' : check.state === 'failed' ? 'error' : 'info'}>{check.state === 'success' ? '✔ ' : check.state === 'failed' ? '✖ ' : ''}{check.text}</Alert>}
               <Typography variant="body2" color="text.secondary">다 끝나면 [편집기에서 열기] → 위쪽 “실행” 버튼으로 시험해 보세요. 안 해도 만들어진 워크플로우는 그대로 남아 있습니다.</Typography>
             </Stack>
           ) : !kind ? (
