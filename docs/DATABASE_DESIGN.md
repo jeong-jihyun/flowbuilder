@@ -4,15 +4,52 @@ DB 구조가 바뀌면 이 문서를 같이 고칩니다.
 
 ## 현재 상태
 
-**DB는 아직 연결되지 않았습니다.** (6단계에서 MongoDB Atlas 무료 등급 연결 예정)
+MongoDB Atlas 무료 등급(M0)을 3단계부터 씁니다. (원래 6단계 예정이었으나 그룹 저장에 DB가 필요해 앞당김)
+
+- 접속: 서버 환경변수 `MONGODB_URI` (브라우저는 DB에 직접 붙지 않음)
+- DB 이름: `MONGODB_DB`, 비우면 `flowbuilder`
+- 연결 코드: `api/_lib/db.js` (연결 1개를 재사용, 처음 연결할 때 인덱스 생성)
+
+## 구현된 컬렉션
+
+### groups
+
+| 필드 | 형식 | 설명 |
+| --- | --- | --- |
+| `_id` | ObjectId | 그룹 ID |
+| `name` | string | 1~50자 |
+| `description` | string | 0~200자 |
+| `createdBy` | string | 만든 사람 Clerk ID |
+| `createdAt`, `updatedAt` | Date | |
+
+### group_members
+
+| 필드 | 형식 | 설명 |
+| --- | --- | --- |
+| `_id` | ObjectId | |
+| `groupId` | ObjectId | `groups._id` |
+| `userId` | string | Clerk 사용자 ID |
+| `email`, `name` | string | 추가할 때의 Clerk 정보 사본 (화면 표시용, 나중에 Clerk에서 바뀌어도 자동 갱신 안 됨) |
+| `role` | string | `owner` / `admin` / `editor` / `viewer` |
+| `addedBy` | string | 추가한 사람 Clerk ID |
+| `addedAt` | Date | |
+
+인덱스
+
+| 컬렉션 | 인덱스 | 용도 |
+| --- | --- | --- |
+| group_members | `{ groupId: 1, userId: 1 }` unique | 같은 사람 중복 추가 방지, 권한 조회 |
+| group_members | `{ userId: 1 }` | 내 그룹 목록 |
+
+그룹을 지우면 `group_members`의 해당 그룹 기록도 지웁니다. 6단계에서 `workflows`가 생기면 그룹 삭제 시 함께 정리해야 합니다.
 
 ## 계획된 컬렉션 (설계 문서 6장)
 
 | 컬렉션 | 주요 데이터 | 만드는 단계 |
 | --- | --- | --- |
 | users | 사용자 정보, Clerk ID | 6 (2단계에서는 Clerk가 보관) |
-| groups | 그룹 정보 | 3 |
-| group_members | 사용자별 그룹 권한 | 3 |
+| groups | 그룹 정보 | 3 (구현) |
+| group_members | 사용자별 그룹 권한 | 3 (구현) |
 | workflows | Workflow 정의, nodes, edges | 6 |
 | workflow_triggers | 실행 Trigger 설정 | 8 |
 | executions | 실행 이력 및 상태 | 8 |
@@ -44,6 +81,6 @@ DB 구조가 바뀌면 이 문서를 같이 고칩니다.
 
 ## 아직 정하지 않은 것
 
-- TTL 외의 인덱스
+- 3단계 외 컬렉션의 인덱스
 - 노드별 입력·출력 스키마
 - Credential 암호화 방식과 키 보관 위치

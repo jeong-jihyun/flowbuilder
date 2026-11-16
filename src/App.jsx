@@ -6,6 +6,8 @@ import AppShell from './layout/AppShell.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 import SignInPage from './pages/SignInPage.jsx';
+import Groups from './pages/Groups.jsx';
+import GroupDetail from './pages/GroupDetail.jsx';
 import { MENU } from './menu.js';
 import { AUTH_ENABLED } from './lib/authConfig.js';
 
@@ -27,6 +29,8 @@ function Pages() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/editor" element={<WorkflowEditor />} />
+          <Route path="/groups" element={<Groups />} />
+          <Route path="/groups/:id" element={<GroupDetail />} />
           {MENU.filter((m) => !m.ready).map((m) => (
             <Route
               key={m.path}

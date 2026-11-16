@@ -31,7 +31,8 @@ function SideMenu({ onPick }) {
           key={m.path}
           component={NavLink}
           to={m.path}
-          selected={pathname === m.path}
+          // /groups/abc 처럼 하위 주소에 있어도 상위 메뉴를 선택 상태로 둔다
+          selected={pathname === m.path || (m.path !== '/' && pathname.startsWith(`${m.path}/`))}
           onClick={onPick}
           sx={{ mx: 1, borderRadius: 1, minHeight: 44 }}
         >

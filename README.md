@@ -9,15 +9,16 @@
 
 접속 주소: https://flowbuilder-roan.vercel.app
 
-**2단계(인증) 완료** — 전체 12단계 중 2단계. 로그인해야 화면이 보입니다(이메일, Google).
+**3단계(그룹·권한) 코드 완료, 배포 전** — 전체 12단계 중 3단계. 그룹 화면은 서버에 `MONGODB_URI`가 등록돼야 동작합니다.
 
 | 되는 것 | 아직 안 되는 것 |
 | --- | --- |
-| 화면 틀(상단바, 메뉴, PC/모바일 전환) | 그룹·권한 (3단계) |
+| 화면 틀(상단바, 메뉴, PC/모바일 전환) | Workflow 저장 (6단계) |
 | Dashboard 화면 (예시 데이터) | |
-| 편집기 미리보기 (노드 이동, 선 연결) | 저장·검증·실행 (6~8단계) |
+| 편집기 미리보기 (노드 이동, 선 연결) | 검증·실행 (7~8단계) |
 | `GET /api/health` | 외부 연동 (9단계) |
-| 로그인 화면, 서버 토큰 검증 `GET /api/me` | |
+| 로그인 화면, 서버 토큰 검증 `GET /api/me` | 초대 메일 (지금은 가입한 이메일로만 추가) |
+| 그룹 만들기·멤버 추가·역할 변경 (`/api/groups`) | |
 
 ## 실행 방법 (Windows PowerShell)
 
@@ -33,6 +34,8 @@ npm run build    # 배포용 파일을 dist 폴더에 생성
 | --- | --- | --- |
 | `VITE_CLERK_PUBLISHABLE_KEY` | 화면(브라우저) | 공개돼도 됨 |
 | `CLERK_SECRET_KEY` | 서버(API) | 비밀. 절대 `VITE_`를 붙이지 않음 |
+| `MONGODB_URI` | 서버(API) | 비밀. MongoDB Atlas 접속 주소 |
+| `MONGODB_DB` | 서버(API) | 선택. DB 이름 (기본 `flowbuilder`) |
 
 내 PC에서는 `.env.example`을 `.env.local`로 복사해 채웁니다. 배포는 Vercel 프로젝트의 Environment Variables에 등록합니다.
 키가 없으면 로그인 없이 화면만 뜨고 상단에 경고가 보입니다.
@@ -44,7 +47,13 @@ npm run build    # 배포용 파일을 dist 폴더에 생성
 ```text
 flowbuilder/
 ├── api/                 서버 API (Vercel Functions)
-│   ├── _lib/auth.js            토큰 검증 공통 함수
+│   ├── _lib/                   공통 코드 (주소로 노출 안 됨)
+│   │   ├── auth.js             토큰 검증
+│   │   ├── db.js               MongoDB 연결
+│   │   ├── roles.js            역할 권한표
+│   │   ├── groups.js           그룹·멤버 처리
+│   │   └── clerkUsers.js       Clerk 사용자 조회
+│   ├── groups.js               /api/groups 전체
 │   ├── health.js
 │   └── me.js
 ├── src/
@@ -74,5 +83,6 @@ flowbuilder/
 
 ## 주요 변경 사항
 
+- 2026-11-16 · v0.3.0 · 3단계 그룹·권한, MongoDB 연결
 - 2026-11-16 · v0.2.0 · 2단계 인증(Clerk) 코드, DB 용량 정책 추가
 - 2026-11-16 · v0.1.0 · 1단계 프로젝트 초기 구성

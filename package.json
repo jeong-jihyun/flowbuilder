@@ -1,7 +1,7 @@
 {
   "name": "flowbuilder",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,6 +16,7 @@
     "@mui/icons-material": "^6.1.0",
     "@mui/material": "^6.1.0",
     "@xyflow/react": "^12.3.0",
+    "mongodb": "^6.22.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.0"

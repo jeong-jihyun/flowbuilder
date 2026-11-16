@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Alert } from '@mui/material';
 import { useAuth } from '@clerk/react';
-import { apiFetch } from '../lib/api.js';
+import { useApi } from '../lib/api.js';
 
 const MESSAGES = {
   loading: { severity: 'info', text: '서버에서 로그인 확인 중…' },
@@ -16,13 +16,14 @@ const MESSAGES = {
 
 // 화면 로그인만 믿지 않고, 서버(/api/me)도 같은 사람으로 인정하는지 보여 준다.
 export default function ServerAuthCheck() {
-  const { getToken, isSignedIn } = useAuth();
+  const { isSignedIn } = useAuth();
+  const api = useApi();
   const [state, setState] = useState('loading');
 
   useEffect(() => {
     if (!isSignedIn) return;
     let alive = true;
-    apiFetch('/me', { getToken }).then((r) => {
+    api('/me').then((r) => {
       if (!alive) return;
       if (r.ok) setState('ok');
       else if (!r.body) setState('noapi');
@@ -31,7 +32,7 @@ export default function ServerAuthCheck() {
     return () => {
       alive = false;
     };
-  }, [getToken, isSignedIn]);
+  }, [api, isSignedIn]);
 
   const m = MESSAGES[state];
   return (
