@@ -24,6 +24,8 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { errorText, useApi } from '../lib/api.js';
 import { AUTH_ENABLED } from '../lib/authConfig.js';
+import ConnectDialog from '../components/ConnectDialog.jsx';
+import { useNavigate } from 'react-router-dom';
 
 // 인증정보 종류 (서버 api/_lib/credentials.js 의 CREDENTIAL_TYPES 와 같은 목록)
 export const CREDENTIAL_TYPE_INFO = {
@@ -128,6 +130,8 @@ export default function Credentials() {
   const [list, setList] = useState(null);
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const navigate = useNavigate();
   const [removing, setRemoving] = useState(null);
 
   const load = useCallback(async () => {
@@ -163,14 +167,19 @@ export default function Credentials() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 760 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
         <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
           인증정보
         </Typography>
         {canManage && (
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)}>
-            등록
-          </Button>
+          <>
+            <Button variant="outlined" onClick={() => setConnecting(true)}>
+              연동 추가 (GAS·깃허브 액션)
+            </Button>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)}>
+              등록
+            </Button>
+          </>
         )}
       </Box>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
@@ -238,6 +247,14 @@ export default function Credentials() {
         onCreated={() => {
           setCreating(false);
           load();
+        }}
+      />
+      <ConnectDialog
+        open={connecting}
+        onClose={() => setConnecting(false)}
+        onDone={({ workflow }) => {
+          load();
+          if (workflow) navigate(`/workflows/${workflow.id}`);
         }}
       />
       <Dialog open={!!removing} onClose={() => setRemoving(null)} fullWidth maxWidth="xs">

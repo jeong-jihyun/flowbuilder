@@ -1,3 +1,5 @@
+import { GAS_CODE, GITHUB_YML } from './snippets.js';
+
 // 메뉴별 사용 설명서 내용. 사진은 public/manual/*.png (scripts/capture-manual.py 로 만든 실제 화면).
 // 사진 위 빨간 번호(①②③)는 steps 의 번호와 같다.
 export const MANUALS = {
@@ -120,30 +122,7 @@ export const RECIPES = {
       title: '레시피 2 · 구글 앱스 스크립트(GAS) 연결하기',
       note: '구글 쪽에서 5단계(A), FlowBuilder에서 4단계(B)입니다. 위에서부터 순서대로, 복사 버튼만 눌러 붙여 넣으세요.',
       steps: [
-        { text: 'A-1. https://script.google.com 에서 “새 프로젝트”를 만들고, 편집기의 기존 코드를 모두 지운 뒤 아래 코드를 붙여 넣고 저장(💾)합니다.', copy: { label: 'Apps Script 코드', text: `// 노드의 "실행할 함수 이름"에 쓸 수 있는 함수만 여기에 등록합니다 (목록에 없는 함수는 실행하지 않음)
-const FUNCTIONS = {
-  main: function (payload) {
-    return { hello: payload.name || 'world', time: new Date().toISOString() };
-  },
-};
-
-function doPost(e) {
-  try {
-    const req = JSON.parse(e.postData.contents);
-    const token = PropertiesService.getScriptProperties().getProperty('TOKEN');
-    if (!token || req.token !== token) return json({ ok: false, error: '인증 실패' });
-
-    const fn = FUNCTIONS[req.function || 'main'];
-    if (!fn) return json({ ok: false, error: '없는 함수: ' + req.function });
-    return json({ ok: true, result: fn(req.payload || {}) });
-  } catch (err) {
-    return json({ ok: false, error: String(err) });
-  }
-}
-
-function json(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
-}`, code: true } },
+        { text: 'A-1. https://script.google.com 에서 “새 프로젝트”를 만들고, 편집기의 기존 코드를 모두 지운 뒤 아래 코드를 붙여 넣고 저장(💾)합니다.', copy: { label: 'Apps Script 코드', text: GAS_CODE, code: true } },
         { text: 'A-2. 아래 버튼으로 비밀값을 만들어 복사해 두세요. (메모장에 잠깐 붙여 두면 B-1에서 또 씁니다)', token: true },
         { text: 'A-3. Apps Script 왼쪽 ⚙ “프로젝트 설정” → 맨 아래 “스크립트 속성” → “스크립트 속성 추가”. 속성에 TOKEN, 값에 A-2의 비밀값을 붙여 넣고 저장합니다.', copy: { label: '속성 이름(위 칸)', text: 'TOKEN' } },
         { text: 'A-4. 오른쪽 위 “배포” → “새 배포” → 톱니바퀴에서 “웹 앱” 선택 → “다음 사용자로 실행: 나”, “액세스 권한: 모든 사용자” → “배포”. 처음이면 “액세스 승인”을 눌러 내 구글 계정으로 허용합니다.' },
@@ -166,7 +145,7 @@ function json(obj) {
       note: '내 저장소의 “GitHub Actions 워크플로우”를 FlowBuilder에서 실행하고, 끝날 때까지 기다립니다. 15초가 넘는 긴 일(빌드·배포·크롤링)에 알맞습니다. 깃허브 쪽 3단계(A), FlowBuilder 쪽 3단계(B)입니다.',
       steps: [
         { text: 'A-1. 깃허브에서 내 저장소를 열고 “Add file → Create new file”을 누릅니다. 파일 이름 칸에 아래 경로를 붙여 넣고, 큰 칸에는 그 아래 내용을 붙여 넣은 뒤 “Commit changes”로 저장합니다. (main 브랜치에 있어야 합니다)', copy: { label: '파일 이름(경로)', text: '.github/workflows/example-dispatch.yml' } },
-        { text: '', copy: { label: '파일 내용', code: true, text: 'name: example-dispatch\non:\n  workflow_dispatch:\n    inputs:\n      name:\n        description: 인사할 이름\n        required: false\n        default: world\njobs:\n  hello:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo "안녕하세요, ${{ inputs.name }}"' } },
+        { text: '', copy: { label: '파일 내용', code: true, text: GITHUB_YML } },
         { text: 'A-2. 토큰 만들기: 깃허브 오른쪽 위 내 사진 → Settings → 맨 아래 Developer settings → Personal access tokens → Fine-grained tokens → Generate new token. ① 이름 아무거나 ② Repository access: “Only select repositories”에서 그 저장소만 선택 ③ Repository permissions에서 “Actions”를 “Read and write”로 → Generate token. 나온 토큰(github_pat_… 로 시작)은 한 번만 보이니 바로 복사해 둡니다.' },
         { text: 'B-1. FlowBuilder “인증정보” → “등록” → 종류 “GitHub 토큰”, 이름은 아래, 비밀값에 A-2의 토큰을 붙여 넣고 저장합니다.', copy: { label: '인증정보 이름', text: '내 깃허브 토큰' } },
         { text: 'B-2. 편집기에서 새 워크플로우(수동 실행 시작)를 만들고 “깃허브 액션” 노드를 추가해 잇습니다. 노드 설정: 저장소는 내 아이디/저장소 이름으로 바꿔 붙여 넣고, GitHub 토큰은 B-1에서 만든 것을 고릅니다.', copy: { label: '저장소 (owner/repo)', text: '내아이디/내저장소' } },

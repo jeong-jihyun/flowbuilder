@@ -28,7 +28,7 @@ async function copyText(text) {
   } catch { return false; }
 }
 
-function CopyBlock({ label, text, code }) {
+export function CopyBlock({ label, text, code }) {
   const [state, setState] = useState('idle');
   const onCopy = async () => {
     const ok = await copyText(text);
@@ -51,7 +51,7 @@ function CopyBlock({ label, text, code }) {
 }
 
 // 무작위 비밀값(Apps Script TOKEN 용). 브라우저 안에서만 만들고 어디에도 저장·전송하지 않는다.
-function makeToken() {
+export function makeToken() {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');

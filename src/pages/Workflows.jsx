@@ -18,6 +18,7 @@ import AddIcon from '@mui/icons-material/Add';
 import { errorText, useApi } from '../lib/api.js';
 import { AUTH_ENABLED } from '../lib/authConfig.js';
 import { ROLE_LABELS } from '../lib/roles.js';
+import ConnectDialog from '../components/ConnectDialog.jsx';
 import SaveWorkflowDialog from '../components/SaveWorkflowDialog.jsx';
 import { formatDate } from '../lib/format.js';
 
@@ -35,6 +36,7 @@ export default function Workflows() {
   const [error, setError] = useState('');
   const [group, setGroup] = useState('all');
   const [creating, setCreating] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   const load = useCallback(async () => {
     const r = await api('/workflows');
@@ -85,6 +87,9 @@ export default function Workflows() {
             ))}
           </TextField>
         )}
+        <Button variant="outlined" onClick={() => setConnecting(true)} disabled={!!error}>
+          연동 추가 (GAS·깃허브 액션)
+        </Button>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)} disabled={!!error}>
           새 워크플로우
         </Button>
@@ -134,6 +139,13 @@ export default function Workflows() {
         </Paper>
       )}
 
+      <ConnectDialog
+        open={connecting}
+        onClose={() => setConnecting(false)}
+        onDone={({ workflow }) => {
+          if (workflow) navigate(`/workflows/${workflow.id}`);
+        }}
+      />
       <SaveWorkflowDialog
         open={creating}
         graph={STARTER}
