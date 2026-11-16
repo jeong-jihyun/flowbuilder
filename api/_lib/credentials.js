@@ -70,6 +70,42 @@ export async function createCredential(db, userId, input = {}) {
   return view({ ...doc, _id: insertedId });
 }
 
+// 수정: 소유자·관리자. 이름·비밀값·헤더 이름만 바꾼다(종류는 못 바꿈). 비밀값을 안 보내면 그대로 둔다.
+export async function updateCredential(db, userId, id, input = {}) {
+  const _id = toObjectId(id, 'CREDENTIAL_NOT_FOUND');
+  const c = await credentials(db).findOne({ _id });
+  if (!c) throw new ApiError(404, 'CREDENTIAL_NOT_FOUND');
+  try {
+    await requireGroupAccess(db, c.groupId, userId, 'manageMembers');
+  } catch (err) {
+    if (err.code === 'GROUP_NOT_FOUND') throw new ApiError(404, 'CREDENTIAL_NOT_FOUND');
+    throw err;
+  }
+  const set = {};
+  if (input.name !== undefined) {
+    const name = typeof input.name === 'string' ? input.name.trim() : '';
+    if (!name) throw new ApiError(400, 'NAME_REQUIRED');
+    if (name.length > LIMITS.name) throw new ApiError(400, 'TEXT_TOO_LONG');
+    set.name = name;
+  }
+  if (input.secret !== undefined && input.secret !== '') {
+    const secret = typeof input.secret === 'string' ? input.secret.trim() : '';
+    if (!secret) throw new ApiError(400, 'SECRET_REQUIRED');
+    if (secret.length > LIMITS.secret) throw new ApiError(400, 'TEXT_TOO_LONG');
+    set.box = encrypt(secret);
+    set.hint = secret.length > 8 ? `…${secret.slice(-4)}` : '…';
+  }
+  if (input.headerName !== undefined && c.type === 'httpHeader') {
+    const headerName = typeof input.headerName === 'string' ? input.headerName.trim() : '';
+    if (!/^[A-Za-z0-9-]{1,64}$/.test(headerName)) throw new ApiError(400, 'INVALID_HEADER_NAME');
+    set.headerName = headerName;
+  }
+  if (!Object.keys(set).length) return view(c);
+  set.updatedAt = new Date();
+  const updated = await credentials(db).findOneAndUpdate({ _id }, { $set: set }, { returnDocument: 'after', projection: { box: 0 } });
+  return view(updated);
+}
+
 // 삭제: 소유자·관리자. 이 인증정보를 쓰던 노드는 다음 실행에서 실패한다(검증은 화면에서 안내).
 export async function deleteCredential(db, userId, id) {
   const _id = toObjectId(id, 'CREDENTIAL_NOT_FOUND');
