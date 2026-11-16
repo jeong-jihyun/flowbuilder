@@ -232,7 +232,7 @@ export default function WorkflowDetail() {
 
   const back = (
     <Button component={RouterLink} to="/workflows" startIcon={<ArrowBackIcon />} size="small">
-      Workflows
+      워크플로우
     </Button>
   );
 
@@ -266,7 +266,7 @@ export default function WorkflowDetail() {
   const header = (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-        <IconButton component={RouterLink} to="/workflows" size="small" aria-label="Workflows 목록으로">
+        <IconButton component={RouterLink} to="/workflows" size="small" aria-label="워크플로우 목록으로">
           <ArrowBackIcon fontSize="small" />
         </IconButton>
         <Typography variant="subtitle1" noWrap sx={{ fontWeight: 700, minWidth: 0 }}>

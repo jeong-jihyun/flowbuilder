@@ -130,7 +130,7 @@ export default function Executions() {
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 900 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
         <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
-          Executions
+          실행 기록
         </Typography>
         <TextField
           select

@@ -64,7 +64,7 @@ export default function SaveWorkflowDialog({ open, graph, title = 'Workflow 저�
           ) : noGroups ? (
             <Alert severity="info">
               Workflow는 그룹 안에 저장됩니다. 편집할 수 있는 그룹이 없습니다.{' '}
-              <RouterLink to="/groups">My Groups</RouterLink>에서 그룹을 먼저 만들어 주세요.
+              <RouterLink to="/groups">내 그룹</RouterLink>에서 그룹을 먼저 만들어 주세요.
             </Alert>
           ) : (
             <>

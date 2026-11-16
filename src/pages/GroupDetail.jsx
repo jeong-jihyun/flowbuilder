@@ -210,7 +210,7 @@ export default function GroupDetail() {
 
   const back = (
     <Button component={RouterLink} to="/groups" startIcon={<ArrowBackIcon />} sx={{ mb: 1 }}>
-      My Groups
+      내 그룹
     </Button>
   );
 

@@ -29,7 +29,7 @@ function StatusRow({ ok, label, help }) {
   );
 }
 
-// 사용자 → 워크스페이스(내 그룹) → 시스템(서버 설정 상태). 설계 5장 Settings.
+// 사용자 → 워크스페이스(내 그룹) → 시스템(서버 설정 상태). 설계 5장 설정(Settings).
 // 서버 설정 값은 보여 주지 않고 "설정됨/안 됨"만 보여 준다.
 export default function Settings() {
   const api = useApi();
@@ -56,7 +56,7 @@ export default function Settings() {
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 760 }}>
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-        Settings
+        설정
       </Typography>
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
@@ -93,7 +93,7 @@ export default function Settings() {
           <CircularProgress size={20} />
         ) : groups.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
-            속한 그룹이 없습니다. <RouterLink to="/groups">My Groups</RouterLink>에서 만들어 보세요.
+            속한 그룹이 없습니다. <RouterLink to="/groups">내 그룹</RouterLink>에서 만들어 보세요.
           </Typography>
         ) : (
           <List dense disablePadding>
@@ -119,7 +119,7 @@ export default function Settings() {
           <List dense disablePadding>
             <StatusRow ok={health.db === 'ok'} label="데이터베이스 (MongoDB)" help={health.db === 'not_configured' ? 'MONGODB_URI 가 서버에 없습니다.' : '연결하지 못했습니다. 잠시 뒤 다시 확인하세요.'} />
             <StatusRow ok={!!health.config?.auth} label="로그인 검증 (Clerk 비밀 키)" help="CLERK_SECRET_KEY 가 서버에 없습니다." />
-            <StatusRow ok={!!health.config?.credentialsKey} label="인증정보 암호화 키" help="CREDENTIALS_KEY(32바이트 base64)가 없거나 길이가 맞지 않습니다. 이 키가 없으면 Credentials 등록이 안 됩니다." />
+            <StatusRow ok={!!health.config?.credentialsKey} label="인증정보 암호화 키" help="CREDENTIALS_KEY(32바이트 base64)가 없거나 길이가 맞지 않습니다. 이 키가 없으면 인증정보 등록이 안 됩니다." />
             <StatusRow ok={!!health.config?.cronSecret} label="주기 작업 비밀 값" help="CRON_SECRET 이 없습니다. 이 값이 없으면 예약 실행과 기다리는 실행 이어가기가 멈춥니다." />
           </List>
         )}

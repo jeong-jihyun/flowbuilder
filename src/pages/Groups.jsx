@@ -112,7 +112,7 @@ export default function Groups() {
     return (
       <Box sx={{ p: { xs: 2, md: 3 } }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-          My Groups
+          내 그룹
         </Typography>
         <Alert severity="warning">그룹은 로그인이 켜져 있어야 쓸 수 있습니다.</Alert>
       </Box>
@@ -123,7 +123,7 @@ export default function Groups() {
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
-          My Groups
+          내 그룹
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)} disabled={!!error}>
           새 그룹

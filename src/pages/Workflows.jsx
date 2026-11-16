@@ -60,7 +60,7 @@ export default function Workflows() {
     return (
       <Box sx={{ p: { xs: 2, md: 3 } }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-          Workflows
+          워크플로우
         </Typography>
         <Alert severity="warning">
           저장된 Workflow는 로그인이 켜져 있어야 볼 수 있습니다. <RouterLink to="/editor">새 Workflow</RouterLink>는 이 기기에서 그려 볼 수 있습니다.
@@ -73,7 +73,7 @@ export default function Workflows() {
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
         <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
-          Workflows
+          워크플로우
         </Typography>
         {groups.length > 1 && (
           <TextField select size="small" label="그룹" value={group} onChange={(e) => setGroup(e.target.value)} sx={{ minWidth: 140 }}>

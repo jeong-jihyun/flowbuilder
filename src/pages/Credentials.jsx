@@ -165,7 +165,7 @@ export default function Credentials() {
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 760 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
         <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
-          Credentials
+          인증정보
         </Typography>
         {canManage && (
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)}>

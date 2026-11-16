@@ -94,13 +94,13 @@ function CredentialSelect({ field, value, common, credentials, onChange }) {
             {common.helperText}
             {options.length === 0 && (
               <>
-                {' · '}먼저 <RouterLink to="/credentials">Credentials 메뉴</RouterLink>에서 등록하세요.
+                {' · '}먼저 <RouterLink to="/credentials">인증정보 메뉴</RouterLink>에서 등록하세요.
               </>
             )}
           </>
         ) : options.length === 0 ? (
           <>
-            등록된 인증정보가 없습니다. <RouterLink to="/credentials">Credentials 메뉴</RouterLink>에서 먼저 등록하세요.
+            등록된 인증정보가 없습니다. <RouterLink to="/credentials">인증정보 메뉴</RouterLink>에서 먼저 등록하세요.
           </>
         ) : missing ? (
           '고른 인증정보를 찾을 수 없습니다(삭제됐거나 다른 그룹 것). 다시 고르세요.'

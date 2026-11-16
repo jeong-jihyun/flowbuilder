@@ -200,7 +200,7 @@ export default function Dashboard() {
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
-        Dashboard
+        대시보드
       </Typography>
 
       {AUTH_ENABLED && <ServerAuthCheck />}
@@ -211,8 +211,8 @@ export default function Dashboard() {
       )}
 
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, mb: 2 }}>
-        <Stat label="Workflows" value={count} note="내가 속한 그룹 전체" color="#2864FF" tint="#EAF1FF" icon={<AccountTreeOutlinedIcon />} />
-        <Stat label="Executions" value={runCounts ? runCounts.total : '–'} note="보관 중인 실행 기록" color="#00A6BC" tint="#E5F9FB" icon={<PlayArrowRoundedIcon />} />
+        <Stat label="워크플로우" value={count} note="내가 속한 그룹 전체" color="#2864FF" tint="#EAF1FF" icon={<AccountTreeOutlinedIcon />} />
+        <Stat label="실행 기록" value={runCounts ? runCounts.total : '–'} note="보관 중인 실행 기록" color="#00A6BC" tint="#E5F9FB" icon={<PlayArrowRoundedIcon />} />
         <Stat label="Failures" value={runCounts ? runCounts.failed : '–'} note="실패한 실행 기록" color="#DC4545" tint="#FFEEEE" icon={<ErrorOutlineRoundedIcon />} />
       </Box>
 
@@ -223,12 +223,12 @@ export default function Dashboard() {
       </Box>
 
       <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-        Recent Workflows
+        최근 워크플로우
       </Typography>
       {workflows && workflows.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            아직 저장된 Workflow가 없습니다. <Link component={RouterLink} to="/workflows">Workflows</Link>에서 만들어 보세요.
+            아직 저장된 Workflow가 없습니다. <Link component={RouterLink} to="/workflows">워크플로우</Link>에서 만들어 보세요.
           </Typography>
         </Paper>
       ) : (
