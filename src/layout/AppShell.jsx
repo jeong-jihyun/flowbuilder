@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link as RouterLink, NavLink, useLocation } from 'react-router-dom';
 import {
   Alert,
   AppBar,
@@ -101,9 +101,9 @@ export default function AppShell({ children }) {
               <MenuIcon />
             </IconButton>
           )}
-          <Typography variant="h6" color="primary" sx={{ fontWeight: 700, flexGrow: 1 }}>
-            FlowBuilder
-          </Typography>
+          <Box component={RouterLink} to="/" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
+            <Box component="img" src="/logo.png" alt="FlowBuilder" sx={{ height: { xs: 28, md: 34 }, width: 'auto', display: 'block' }} />
+          </Box>
           {/* 로그인한 사용자 사진. 누르면 계정 관리·로그아웃 메뉴가 열린다 */}
           {AUTH_ENABLED ? <UserButton /> : <Avatar sx={{ width: 32, height: 32 }} />}
         </Toolbar>
