@@ -27,3 +27,8 @@ function json(obj) {
 export const GITHUB_YML = 'name: example-dispatch\non:\n  workflow_dispatch:\n    inputs:\n      name:\n        description: 인사할 이름\n        required: false\n        default: world\njobs:\n  hello:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo "안녕하세요, ${{ inputs.name }}"';
 
 export const GITHUB_YML_PATH = '.github/workflows/example-dispatch.yml';
+
+// 견본 깃허브 저장소 (이 앱의 저장소에 example-dispatch.yml 이 이미 들어 있다)
+export const DEFAULT_REPO = 'jeong-jihyun/flowbuilder';
+export const GITHUB_TOKEN_URL = 'https://github.com/settings/personal-access-tokens/new';
+export const GAS_NEW_URL = 'https://script.google.com/home/projects/create';

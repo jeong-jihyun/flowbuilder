@@ -1,0 +1,13 @@
+name: example-dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 인사할 이름
+        required: false
+        default: world
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "안녕하세요, ${{ inputs.name }}"

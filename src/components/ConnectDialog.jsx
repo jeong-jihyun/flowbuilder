@@ -1,24 +1,28 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert, Box, Button, Checkbox, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
-  MenuItem, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Alert, Box, Button, CircularProgress, Collapse, Dialog, DialogActions, DialogContent, DialogTitle,
+  MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { errorText, useApi } from '../lib/api.js';
 import { CopyBlock, makeToken } from '../manual/ManualDialog.jsx';
-import { GAS_CODE, GITHUB_YML, GITHUB_YML_PATH } from '../manual/snippets.js';
+import { DEFAULT_REPO, GAS_CODE, GAS_NEW_URL, GITHUB_TOKEN_URL, GITHUB_YML, GITHUB_YML_PATH } from '../manual/snippets.js';
 
-// 연동 등록 마법사: 구글 앱스 스크립트(GAS) / 깃허브 액션을 한 창에서 준비하고 등록한다.
-//  1) 종류·그룹 고르기  2) 준비(복사해서 붙여 넣기)  3) 주소·비밀값 입력 → 인증정보 등록 (+ 워크플로우 바로 만들기)
-// 비밀값은 이 창 안에서만 잡고 있다가 등록하거나 닫으면 지운다. 서버에는 등록할 때 한 번만 보낸다.
+// 연동 마법사 — 입력을 거의 하지 않고 버튼만 눌러 따라가는 방식.
+//  1) 종류 고르기  2) 미리 채워진 내용 확인 후 "이 내용으로 만들기"  3) 만든 뒤 해야 할 일을 버튼·복사로 안내
+// 비밀값은 이 창 안에서만 잡고 있다가 닫으면 지운다.
 const GAS_URL = /^https:\/\/script\.google\.com\/\S+$/;
 const REPO = /^[\w.-]+\/[\w.-]+$/;
 
 const KINDS = {
-  gas: { label: '구글 앱스 스크립트', credType: 'gasSecret', nodeKind: 'gas' },
-  github: { label: '깃허브 액션', credType: 'githubToken', nodeKind: 'githubActions' },
+  gas: { label: '구글 앱스 스크립트', credType: 'gasSecret', nodeKind: 'gas', name: '내 앱스 스크립트' },
+  github: { label: '깃허브 액션', credType: 'githubToken', nodeKind: 'githubActions', name: '내 깃허브 액션' },
 };
 
-// 등록한 연동으로 바로 돌려 볼 수 있는 워크플로우: 수동 실행 → 연동 노드
+const initial = (kind) => ({
+  name: KINDS[kind].name, url: '', functionName: 'main', repo: DEFAULT_REPO, workflow: 'example-dispatch.yml', ref: 'main',
+  secret: kind === 'gas' ? makeToken() : '',
+});
+
 function buildGraph(kind, v, credentialId = '') {
   const params =
     kind === 'gas'
@@ -33,24 +37,37 @@ function buildGraph(kind, v, credentialId = '') {
   };
 }
 
+function Row({ k, children }) {
+  return (
+    <Box sx={{ display: 'flex', gap: 1, py: 0.5 }}>
+      <Typography variant="body2" color="text.secondary" sx={{ minWidth: 92 }}>{k}</Typography>
+      <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>{children}</Typography>
+    </Box>
+  );
+}
+
 export default function ConnectDialog({ open, onClose, onDone, initialKind }) {
   const api = useApi();
   const [groups, setGroups] = useState(null);
-  const [step, setStep] = useState(0);
-  const [kind, setKind] = useState('gas');
+  const [kind, setKind] = useState(initialKind || null);
   const [groupId, setGroupId] = useState('');
-  const [v, setV] = useState({ name: '', url: '', functionName: 'main', repo: '', workflow: 'example-dispatch.yml', ref: 'main', secret: '' });
-  const [makeFlow, setMakeFlow] = useState(true);
+  const [v, setV] = useState(initial('gas'));
+  const [edit, setEdit] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [partial, setPartial] = useState(null); // 인증정보는 만들어졌고 워크플로우만 실패했을 때
-  const [result, setResult] = useState(null); // 등록이 끝난 뒤 남은 할 일 안내
+  const [result, setResult] = useState(null); // { workflow, credential, secret, kind, hasCred }
+  const [pasteUrl, setPasteUrl] = useState('');
+  const [pasteToken, setPasteToken] = useState('');
+  const [saved, setSaved] = useState({}); // 안내 단계에서 저장이 끝난 항목
   const set = (k) => (e) => setV((o) => ({ ...o, [k]: e.target.value }));
+
+  function pick(k) { setKind(k); setV(initial(k)); setEdit(false); }
 
   useEffect(() => {
     if (!open) return;
-    setKind(initialKind || 'gas'); setStep(initialKind ? 1 : 0); setError(''); setPartial(null); setResult(null); setMakeFlow(true);
-    setV({ name: '', url: '', functionName: 'main', repo: '', workflow: 'example-dispatch.yml', ref: 'main', secret: '' });
+    setError(''); setResult(null); setSaved({}); setPasteUrl(''); setPasteToken(''); setSaving(false);
+    setKind(initialKind || null);
+    if (initialKind) setV(initial(initialKind));
     setGroups(null);
     api('/groups').then((r) => {
       if (!r.ok) { setGroups([]); setError(errorText(r)); return; }
@@ -61,146 +78,159 @@ export default function ConnectDialog({ open, onClose, onDone, initialKind }) {
   }, [open, api, initialKind]);
 
   function close(openEditor = false) {
-    setV((o) => ({ ...o, secret: '' })); // 비밀값은 화면에 남기지 않는다
+    setV((o) => ({ ...o, secret: '' })); setPasteToken('');
     if (result) onDone?.({ credential: result.credential, workflow: result.workflow, openEditor: openEditor === true });
     onClose();
   }
 
-  // 견본 먼저: 주소·비밀값은 비워 둘 수 있다(나중에 편집기에서 채움). 값을 넣었다면 모양은 맞아야 한다.
-  const nameOk = v.name.trim().length > 0;
-  const hasSecret = v.secret.trim().length > 0;
-  const fieldsOk =
-    kind === 'gas'
-      ? !v.url.trim() || GAS_URL.test(v.url.trim())
-      : (!v.repo.trim() || REPO.test(v.repo.trim())) && v.workflow.trim().length > 0;
-  const inputOk = nameOk && fieldsOk && (hasSecret || makeFlow);
+  const fieldsOk = kind === 'gas'
+    ? !v.url.trim() || GAS_URL.test(v.url.trim())
+    : REPO.test(v.repo.trim()) && v.workflow.trim().length > 0;
+  const ok = v.name.trim().length > 0 && fieldsOk;
 
-  async function submit() {
+  // "이 내용으로 만들기": GAS는 자동으로 만든 비밀값을 인증정보로 등록하고, 워크플로우를 만든다.
+  async function create() {
     setSaving(true); setError('');
     let credential = null;
-    if (hasSecret) {
-      const c = await api('/credentials', { method: 'POST', json: { groupId, name: v.name.trim(), type: KINDS[kind].credType, secret: v.secret.trim() } });
+    if (kind === 'gas') {
+      const c = await api('/credentials', { method: 'POST', json: { groupId, name: v.name.trim(), type: KINDS.gas.credType, secret: v.secret } });
       if (!c.ok) { setSaving(false); setError(errorText(c)); return; }
       credential = c.body.credential;
     }
-    setV((o) => ({ ...o, secret: '' }));
-    let workflow = null;
-    if (makeFlow) {
-      const w = await api('/workflows', { method: 'POST', json: { groupId, name: v.name.trim(), ...buildGraph(kind, v, credential?.id || '') } });
-      if (!w.ok) {
-        setSaving(false);
-        if (credential) { setPartial({ credential }); setError(`인증정보는 등록됐지만 워크플로우를 만들지 못했습니다: ${errorText(w)}`); }
-        else setError(errorText(w));
-        return;
-      }
-      workflow = w.body.workflow;
-    }
+    const w = await api('/workflows', { method: 'POST', json: { groupId, name: v.name.trim(), ...buildGraph(kind, v, credential?.id || '') } });
     setSaving(false);
-    const todo = [];
-    if (kind === 'gas' ? !v.url.trim() : !v.repo.trim()) todo.push(kind === 'gas' ? '웹 앱 주소(…/exec)를 노드의 속성 패널에 입력' : '저장소(owner/repo)를 노드의 속성 패널에 입력');
-    if (!credential) todo.push(`${kind === 'gas' ? 'GAS 비밀값' : 'GitHub 토큰'}을 인증정보 화면의 "연동 추가"에서 등록한 뒤, 노드의 "인증정보" 칸에서 선택`);
-    setResult({ credential, workflow, todo, wfName: v.name.trim() });
+    if (!w.ok) { setError(`${credential ? '인증정보는 등록됐지만 ' : ''}워크플로우를 만들지 못했습니다: ${errorText(w)}`); return; }
+    setResult({ workflow: w.body.workflow, credential, secret: v.secret, kind, vals: { ...v }, groupId });
+    if (v.url.trim()) setSaved((o) => ({ ...o, url: true }));
+  }
+
+  // 안내 단계: 노드 값을 고쳐서 저장
+  async function patchNode(patch) {
+    const wf = result.workflow;
+    const nodes = wf.nodes.map((n) => (n.id === 'action_1' ? { ...n, data: { ...n.data, params: { ...n.data.params, ...patch } } } : n));
+    const r = await api(`/workflows/${wf.id}`, { method: 'PUT', json: { version: wf.version, nodes } });
+    if (!r.ok) throw new Error(errorText(r));
+    setResult((o) => ({ ...o, workflow: { ...wf, ...r.body.workflow } }));
+  }
+
+  async function saveUrl() {
+    setSaving(true); setError('');
+    try { await patchNode({ url: pasteUrl.trim() }); setSaved((o) => ({ ...o, url: true })); } catch (e) { setError(e.message); }
+    setSaving(false);
+  }
+
+  async function saveToken() {
+    setSaving(true); setError('');
+    const c = await api('/credentials', { method: 'POST', json: { groupId: result.groupId, name: result.vals.name.trim(), type: KINDS.github.credType, secret: pasteToken.trim() } });
+    if (!c.ok) { setSaving(false); setError(errorText(c)); return; }
+    setPasteToken('');
+    try { await patchNode({ credentialId: c.body.credential.id }); setSaved((o) => ({ ...o, token: true })); setResult((o) => ({ ...o, credential: c.body.credential })); }
+    catch (e) { setError(`토큰은 등록됐지만 워크플로우에 연결하지 못했습니다: ${e.message}`); }
+    setSaving(false);
   }
 
   const noGroups = groups !== null && groups.length === 0 && !error;
+  const title = result ? '만들어졌습니다 — 이어서 버튼만 따라가세요' : !kind ? '연동 추가' : `${KINDS[kind].label} 연동 만들기`;
 
   return (
     <Dialog open={open} onClose={saving ? undefined : () => close()} fullWidth maxWidth="sm" scroll="paper">
-      <DialogTitle sx={{ fontWeight: 800 }}>연동 추가 · {result ? '완료' : `${step + 1}/3 ${['종류 고르기', '준비하기', '입력하고 등록'][step]}`}</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 800 }}>{title}</DialogTitle>
       <DialogContent dividers>
-        {result ? (
-          <Stack sx={{ gap: 1.5 }}>
-            <Alert severity="success">
-              {[result.credential && '인증정보 등록', result.workflow && `워크플로우 “${result.wfName}” 생성`].filter(Boolean).join(' · ')} 완료
-            </Alert>
-            {result.todo.length > 0 ? (
-              <>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>남은 할 일</Typography>
-                {result.todo.map((t, i) => <Typography key={i} variant="body2">☐ {t}</Typography>)}
-                <Typography variant="body2" color="text.secondary">노드 값은 편집기에서 노드를 누르면 오른쪽(폰은 아래) 속성 패널에서 고칠 수 있습니다.</Typography>
-              </>
-            ) : <Typography variant="body2">남은 설정이 없습니다. 편집기에서 “실행”을 눌러 보세요.</Typography>}
-          </Stack>
-        ) : (<>
-        {error && <Alert severity={partial ? 'warning' : 'error'} sx={{ mb: 2 }}>{error}</Alert>}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {groups === null ? <Box sx={{ display: 'grid', placeItems: 'center', py: 4 }}><CircularProgress /></Box>
-          : noGroups ? <Alert severity="info">연동은 그룹의 소유자·관리자만 등록할 수 있습니다. 해당하는 그룹이 없습니다.</Alert>
-          : step === 0 ? (
-            <Stack sx={{ gap: 2 }}>
-              <Typography variant="body2">워크플로우에서 쓸 작업 방식을 고르세요.</Typography>
-              <ToggleButtonGroup exclusive fullWidth color="primary" value={kind} onChange={(_, k) => k && setKind(k)} orientation="vertical">
-                <ToggleButton value="gas" sx={{ justifyContent: 'flex-start', textAlign: 'left', gap: 1, flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <b>구글 앱스 스크립트 (GAS)</b>
-                  <span>구글 시트·메일·캘린더 등을 다루는 가벼운 작업. 15초 안에 끝나는 일.</span>
-                </ToggleButton>
-                <ToggleButton value="github" sx={{ justifyContent: 'flex-start', textAlign: 'left', gap: 1, flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <b>깃허브 액션</b>
-                  <span>내 저장소의 GitHub Actions 실행. 빌드·배포·긴 작업(끝날 때까지 기다림).</span>
-                </ToggleButton>
-              </ToggleButtonGroup>
-              <TextField select label="그룹 (이 그룹에서만 쓸 수 있습니다)" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
-                {groups.map((g) => <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
-              </TextField>
-            </Stack>
-          ) : step === 1 ? (
-            kind === 'gas' ? (
-              <Stack sx={{ gap: 1 }}>
-                <Typography variant="body2"><b>1.</b> https://script.google.com → “새 프로젝트” → 기존 코드를 모두 지우고 아래 코드를 붙여 넣은 뒤 저장(💾).</Typography>
-                <CopyBlock label="Apps Script 코드" text={GAS_CODE} code />
-                <Typography variant="body2"><b>2.</b> 비밀값을 만들어 복사합니다. Apps Script의 ⚙ 프로젝트 설정 → 스크립트 속성 추가 → 속성 <code>TOKEN</code>, 값에 이 비밀값을 붙여 넣고 저장합니다. (다음 단계에 자동으로 들어갑니다)</Typography>
-                {v.secret ? <CopyBlock label="만든 비밀값" text={v.secret} />
-                  : <Button size="small" variant="outlined" sx={{ alignSelf: 'flex-start' }} onClick={() => setV((o) => ({ ...o, secret: makeToken() }))}>무작위 비밀값 만들기</Button>}
-                <Typography variant="body2"><b>3.</b> 배포 → 새 배포 → 톱니바퀴 “웹 앱” → 다음 사용자로 실행 “나”, 액세스 권한 “모든 사용자” → 배포(처음이면 “액세스 승인”). 나온 <code>…/exec</code> 주소를 복사해 다음 단계에 붙여 넣습니다.</Typography>
-              </Stack>
-            ) : (
-              <Stack sx={{ gap: 1 }}>
-                <Typography variant="body2"><b>1.</b> 깃허브 저장소 → Add file → Create new file. 이름 칸에 경로, 큰 칸에 내용을 붙여 넣고 Commit (main 브랜치). 이미 실행할 yml이 있으면 건너뛰어도 됩니다. 그 파일에는 <code>workflow_dispatch</code>가 있어야 합니다.</Typography>
-                <CopyBlock label="파일 이름(경로)" text={GITHUB_YML_PATH} />
-                <CopyBlock label="파일 내용" text={GITHUB_YML} code />
-                <Typography variant="body2"><b>2.</b> 토큰 만들기: 깃허브 내 사진 → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token. Repository access는 “Only select repositories”로 그 저장소만, Repository permissions의 <b>Actions</b>를 <b>Read and write</b>로 → Generate. 나온 <code>github_pat_…</code> 토큰은 한 번만 보이니 복사해 두세요.</Typography>
-              </Stack>
-            )
-          ) : (
-            <Stack sx={{ gap: 2 }}>
-              <Alert severity="success" icon={false}>
-                <b>가장 쉬운 방법:</b> 아래 “이름”만 적고 <b>[견본 만들기]</b>를 누르세요. 나머지(주소·비밀값)는 아직 몰라도 됩니다. 만든 뒤 “남은 할 일”을 따라 하나씩 채우면 됩니다.
-              </Alert>
-              <TextField label="이름 (노드에서 고를 때 보임)" value={v.name} onChange={set('name')} required inputProps={{ maxLength: 50 }}
-                placeholder={kind === 'gas' ? '내 앱스 스크립트' : '내 깃허브 액션'} />
-              {kind === 'gas' ? (
+          : noGroups ? <Alert severity="info">연동은 그룹의 소유자·관리자만 만들 수 있습니다. 해당하는 그룹이 없습니다.</Alert>
+          : result ? (
+            <Stack sx={{ gap: 1.5 }}>
+              <Alert severity="success">“{result.vals.name}” 워크플로우가 만들어졌습니다. 아래 번호 순서대로 하면 끝납니다.</Alert>
+              {result.kind === 'gas' ? (
                 <>
-                  <TextField label="웹 앱 주소 (…/exec) · 나중에 입력 가능" value={v.url} onChange={set('url')} placeholder="https://script.google.com/macros/s/.../exec"
-                    error={!!v.url && !GAS_URL.test(v.url.trim())} helperText={v.url && !GAS_URL.test(v.url.trim()) ? 'https://script.google.com/ 으로 시작해야 합니다' : '어디서? Apps Script → 배포 → 새 배포 후 나오는 “웹 앱 URL”. 아직 없으면 비워 두세요'} />
-                  <TextField label="실행할 함수 이름" value={v.functionName} onChange={set('functionName')} helperText="견본 코드의 main 이 기본입니다" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>① 코드 넣기</Typography>
+                  <Button variant="outlined" component="a" href={GAS_NEW_URL} target="_blank" rel="noopener noreferrer">구글 앱스 스크립트 새 프로젝트 열기</Button>
+                  <Typography variant="body2">열린 화면에서 기존 글자를 모두 지우고, 아래 [복사]를 누른 뒤 붙여 넣고 저장(💾)하세요.</Typography>
+                  <CopyBlock label="앱스 스크립트 코드" text={GAS_CODE} code />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>② 비밀값 넣기</Typography>
+                  <Typography variant="body2">왼쪽 ⚙ 프로젝트 설정 → 스크립트 속성 → “스크립트 속성 추가”. 속성에 <code>TOKEN</code>, 값에 아래 비밀값을 붙여 넣고 저장하세요. (이 창에서만 보이니 지금 복사)</Typography>
+                  <CopyBlock label="비밀값 (TOKEN 값)" text={result.secret} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>③ 배포하고 주소 붙여넣기</Typography>
+                  <Typography variant="body2">오른쪽 위 배포 → 새 배포 → 톱니바퀴 “웹 앱” → 다음 사용자로 실행 “나”, 액세스 권한 “모든 사용자” → 배포(처음이면 “액세스 승인”). 나온 “웹 앱 URL”을 복사해 아래에 붙여 넣으세요.</Typography>
+                  {saved.url ? <Alert severity="success">✔ 주소가 저장됐습니다</Alert> : (
+                    <>
+                      <TextField label="웹 앱 URL 붙여넣기" value={pasteUrl} onChange={(e) => setPasteUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec"
+                        error={!!pasteUrl && !GAS_URL.test(pasteUrl.trim())} helperText={pasteUrl && !GAS_URL.test(pasteUrl.trim()) ? 'https://script.google.com/ 으로 시작해야 합니다' : ' '} />
+                      <Button variant="contained" onClick={saveUrl} disabled={saving || !GAS_URL.test(pasteUrl.trim())}>주소 저장</Button>
+                    </>
+                  )}
                 </>
               ) : (
                 <>
-                  <TextField label="저장소 (owner/repo) · 나중에 입력 가능" value={v.repo} onChange={set('repo')} placeholder="내아이디/내저장소"
-                    error={!!v.repo && !REPO.test(v.repo.trim())} helperText={v.repo && !REPO.test(v.repo.trim()) ? 'owner/repo 모양이어야 합니다' : '어디서? 깃허브 저장소 주소의 github.com/ 뒤 두 칸 (예: jeong-jihyun/flowbuilder). 아직 없으면 비워 두세요'} />
-                  <TextField label="워크플로우 파일" value={v.workflow} onChange={set('workflow')} required helperText="저장소의 .github/workflows 안 파일 이름. 견본 yml을 올렸다면 그대로 두세요" />
-                  <TextField label="브랜치" value={v.ref} onChange={set('ref')} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>① 실행할 파일</Typography>
+                  {result.vals.repo === DEFAULT_REPO
+                    ? <Alert severity="success" icon={false}>✔ {DEFAULT_REPO} 저장소에 견본 파일(example-dispatch.yml)이 이미 들어 있습니다. 할 일 없음.</Alert>
+                    : (<><Typography variant="body2">저장소 → Add file → Create new file → 이름 칸과 내용 칸에 아래를 각각 붙여 넣고 Commit.</Typography>
+                      <CopyBlock label="파일 이름" text={GITHUB_YML_PATH} /><CopyBlock label="파일 내용" text={GITHUB_YML} code /></>)}
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>② 토큰 만들어 붙여넣기</Typography>
+                  <Button variant="outlined" component="a" href={GITHUB_TOKEN_URL} target="_blank" rel="noopener noreferrer">깃허브 토큰 만드는 곳 열기</Button>
+                  <Typography variant="body2">열린 화면에서: Token name 아무거나 → Repository access “Only select repositories”에서 저장소 선택 → Permissions의 Repository permissions → <b>Actions</b>를 <b>Read and write</b> → 맨 아래 Generate token. 나온 <code>github_pat_…</code> 글자를 복사해 아래에 붙여 넣으세요.</Typography>
+                  {saved.token ? <Alert severity="success">✔ 토큰이 저장되고 워크플로우에 연결됐습니다</Alert> : (
+                    <>
+                      <TextField label="깃허브 토큰 붙여넣기" type="password" value={pasteToken} onChange={(e) => setPasteToken(e.target.value)} autoComplete="new-password" helperText="저장하면 암호화되어 다시 볼 수 없습니다." />
+                      <Button variant="contained" onClick={saveToken} disabled={saving || !pasteToken.trim()}>토큰 저장</Button>
+                    </>
+                  )}
                 </>
               )}
-              <TextField label={kind === 'gas' ? 'GAS 비밀값 (Apps Script의 TOKEN과 같은 값)' : 'GitHub 토큰'} type="password" value={v.secret} onChange={set('secret')} autoComplete="new-password"
-                helperText="비워 두면 견본 워크플로우만 만들고, 비밀값은 나중에 등록합니다. 저장하면 암호화되어 다시 볼 수 없습니다." />
-              <FormControlLabel control={<Checkbox checked={makeFlow} onChange={(e) => setMakeFlow(e.target.checked)} />}
-                label="이 연동으로 바로 돌려 볼 워크플로우도 만들기 (수동 실행 → 연동)" />
+              <Typography variant="body2" color="text.secondary">다 끝나면 [편집기에서 열기] → 위쪽 “실행” 버튼으로 시험해 보세요. 안 해도 만들어진 워크플로우는 그대로 남아 있습니다.</Typography>
+            </Stack>
+          ) : !kind ? (
+            <Stack sx={{ gap: 1.5 }}>
+              <Typography variant="body2">무엇을 연결할까요? 누르기만 하면 됩니다.</Typography>
+              <Button variant="outlined" size="large" sx={{ justifyContent: 'flex-start', textAlign: 'left', flexDirection: 'column', alignItems: 'flex-start', py: 1.5 }} onClick={() => pick('gas')}>
+                <b>구글 앱스 스크립트</b><span>구글 시트·메일 등 가벼운 작업 (15초 안에 끝나는 일)</span>
+              </Button>
+              <Button variant="outlined" size="large" sx={{ justifyContent: 'flex-start', textAlign: 'left', flexDirection: 'column', alignItems: 'flex-start', py: 1.5 }} onClick={() => pick('github')}>
+                <b>깃허브 액션</b><span>빌드·배포 같은 긴 작업 실행</span>
+              </Button>
+            </Stack>
+          ) : (
+            <Stack sx={{ gap: 1.5 }}>
+              <Alert severity="info" icon={false}>아래 내용은 <b>이미 채워져 있습니다</b>. 그대로 [이 내용으로 만들기]만 누르세요. 만든 뒤 해야 할 일은 다음 화면에서 버튼으로 안내합니다.</Alert>
+              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, px: 1.5, py: 1 }}>
+                <Row k="이름">{v.name}</Row>
+                {kind === 'gas' ? (
+                  <><Row k="실행할 함수">{v.functionName}</Row><Row k="웹 앱 주소">{v.url || '다음 화면에서 붙여넣기'}</Row><Row k="비밀값">자동으로 만들어 안전하게 저장</Row></>
+                ) : (
+                  <><Row k="저장소">{v.repo}</Row><Row k="워크플로우 파일">{v.workflow}</Row><Row k="브랜치">{v.ref}</Row><Row k="토큰">다음 화면에서 붙여넣기</Row></>
+                )}
+              </Box>
+              <Button size="small" sx={{ alignSelf: 'flex-start' }} onClick={() => setEdit(!edit)}>{edit ? '고치기 접기' : '값 고치기 (선택)'}</Button>
+              <Collapse in={edit}>
+                <Stack sx={{ gap: 1.5, pt: 0.5 }}>
+                  <TextField label="이름" value={v.name} onChange={set('name')} inputProps={{ maxLength: 50 }} />
+                  {kind === 'gas'
+                    ? <TextField label="실행할 함수 이름" value={v.functionName} onChange={set('functionName')} />
+                    : (<><TextField label="저장소 (owner/repo)" value={v.repo} onChange={set('repo')} error={!REPO.test(v.repo.trim())} />
+                      <TextField label="워크플로우 파일" value={v.workflow} onChange={set('workflow')} /><TextField label="브랜치" value={v.ref} onChange={set('ref')} /></>)}
+                </Stack>
+              </Collapse>
+              {groups.length > 1 && (
+                <TextField select label="그룹" value={groupId} onChange={(e) => setGroupId(e.target.value)}>
+                  {groups.map((g) => <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>)}
+                </TextField>
+              )}
             </Stack>
           )}
-        </>)}
       </DialogContent>
       <DialogActions>
         {result ? (
           <>
             <Button onClick={() => close()}>닫기</Button>
-            {result.workflow && <Button variant="contained" onClick={() => close(true)}>편집기에서 이어서 하기</Button>}
+            <Button variant="contained" onClick={() => close(true)}>편집기에서 열기</Button>
           </>
         ) : (
           <>
-            <Button onClick={() => close()} disabled={saving}>{partial ? '닫기' : '취소'}</Button>
-            {step > 0 && !partial && <Button onClick={() => setStep(step - 1)} disabled={saving}>이전</Button>}
-            {step < 2 && !noGroups && <Button variant="contained" onClick={() => setStep(step + 1)} disabled={!groupId}>다음</Button>}
-            {step === 2 && !partial && <Button variant="contained" onClick={submit} disabled={saving || !inputOk}>{saving ? '만드는 중…' : hasSecret ? '등록' : '견본 만들기'}</Button>}
+            <Button onClick={() => close()} disabled={saving}>취소</Button>
+            {kind && !initialKind && <Button onClick={() => { setKind(null); setError(''); }} disabled={saving}>이전</Button>}
+            {kind && !noGroups && <Button variant="contained" size="large" onClick={create} disabled={saving || !ok || !groupId}>{saving ? '만드는 중…' : '이 내용으로 만들기'}</Button>}
           </>
         )}
       </DialogActions>
