@@ -78,7 +78,7 @@ export const MANUALS = {
     purpose: '깃허브 토큰·API 키처럼 비밀 값을 안전하게 저장해 두는 곳입니다. 저장하면 암호화되고, 화면에는 끝 4자리 힌트만 보입니다.',
     when: 'HTTP 요청·깃허브 액션·앱스 스크립트 노드에서 비밀 값을 써야 할 때',
     steps: [
-      '“인증정보 추가”를 눌러 그룹, 종류(깃허브 토큰/앱스 스크립트 비밀값/HTTP 헤더), 이름, 비밀 값을 입력해 저장합니다.',
+      '“등록”을 눌러 그룹, 종류(깃허브 토큰/앱스 스크립트 비밀값/HTTP 헤더), 이름, 비밀 값을 입력해 저장합니다.',
       '목록에는 이름과 끝 4자리 힌트만 보입니다. 비밀 값 전체는 다시 볼 수 없습니다.',
       '노드 설정에서 “인증정보” 칸에 만든 이름을 고르면 실행할 때만 안전하게 꺼내 씁니다.',
       '바꾸려면 삭제 후 다시 등록합니다.',
@@ -99,6 +99,69 @@ export const MANUALS = {
     example: '인증정보 저장이 안 될 때 → 설정에서 “암호화 키”가 준비 안 됨으로 보이면 서버 환경변수(CREDENTIALS_KEY)를 설정합니다.',
     tips: ['이 화면은 보기 전용입니다. 값을 바꾸는 곳이 아닙니다.'],
   },
+};
+
+
+// 복사해서 붙여 넣는 따라 하기 레시피. blocks: { label: 어디에 붙여 넣는지, text: 복사할 내용 } / { token: true } 는 무작위 비밀값 만들기
+export const RECIPES = {
+  '/editor': [
+    {
+      title: '레시피 1 · 처음 만들어 보기 (수동 실행 → 데이터 변환)',
+      note: '5분이면 끝나는 가장 쉬운 연습입니다. 외부 서비스가 필요 없습니다.',
+      steps: [
+        { text: '워크플로우 메뉴 → “새 워크플로우” → 그룹을 고르고 이름 칸에 아래를 붙여 넣고 만듭니다.', copy: { label: '워크플로우 이름', text: '인사 문장 만들기' } },
+        { text: '편집기 왼쪽 목록의 “데이터 변환”을 눌러 추가하고, “수동 실행” 노드 아래 동그라미에서 끌어 데이터 변환 위 동그라미에 잇습니다.' },
+        { text: '데이터 변환 노드를 눌러 “결과 모양(JSON)” 칸의 내용을 모두 지우고 아래를 붙여 넣습니다.', copy: { label: '결과 모양(JSON)', text: '{\n  "message": "안녕하세요, {{input.name}}님"\n}' } },
+        { text: '위쪽 “저장” → “실행”을 누르고, 입력값 칸에 아래를 붙여 넣어 실행합니다.', copy: { label: '실행 입력값', text: '{"name": "홍길동"}' } },
+        { text: '결과에 “안녕하세요, 홍길동님”이 나오면 성공입니다.' },
+      ],
+    },
+    {
+      title: '레시피 2 · 구글 앱스 스크립트(GAS) 연결하기',
+      note: '구글 쪽에서 5단계(A), FlowBuilder에서 4단계(B)입니다. 위에서부터 순서대로, 복사 버튼만 눌러 붙여 넣으세요.',
+      steps: [
+        { text: 'A-1. https://script.google.com 에서 “새 프로젝트”를 만들고, 편집기의 기존 코드를 모두 지운 뒤 아래 코드를 붙여 넣고 저장(💾)합니다.', copy: { label: 'Apps Script 코드', text: `// 노드의 "실행할 함수 이름"에 쓸 수 있는 함수만 여기에 등록합니다 (목록에 없는 함수는 실행하지 않음)
+const FUNCTIONS = {
+  main: function (payload) {
+    return { hello: payload.name || 'world', time: new Date().toISOString() };
+  },
+};
+
+function doPost(e) {
+  try {
+    const req = JSON.parse(e.postData.contents);
+    const token = PropertiesService.getScriptProperties().getProperty('TOKEN');
+    if (!token || req.token !== token) return json({ ok: false, error: '인증 실패' });
+
+    const fn = FUNCTIONS[req.function || 'main'];
+    if (!fn) return json({ ok: false, error: '없는 함수: ' + req.function });
+    return json({ ok: true, result: fn(req.payload || {}) });
+  } catch (err) {
+    return json({ ok: false, error: String(err) });
+  }
+}
+
+function json(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}`, code: true } },
+        { text: 'A-2. 아래 버튼으로 비밀값을 만들어 복사해 두세요. (메모장에 잠깐 붙여 두면 B-1에서 또 씁니다)', token: true },
+        { text: 'A-3. Apps Script 왼쪽 ⚙ “프로젝트 설정” → 맨 아래 “스크립트 속성” → “스크립트 속성 추가”. 속성에 TOKEN, 값에 A-2의 비밀값을 붙여 넣고 저장합니다.', copy: { label: '속성 이름(위 칸)', text: 'TOKEN' } },
+        { text: 'A-4. 오른쪽 위 “배포” → “새 배포” → 톱니바퀴에서 “웹 앱” 선택 → “다음 사용자로 실행: 나”, “액세스 권한: 모든 사용자” → “배포”. 처음이면 “액세스 승인”을 눌러 내 구글 계정으로 허용합니다.' },
+        { text: 'A-5. 나온 “웹 앱 URL”(…/exec 로 끝남)을 복사해 둡니다.' },
+        { text: 'B-1. FlowBuilder “인증정보” 메뉴 → “등록” → 종류 “GAS 비밀값”, 이름은 아래, 비밀값은 A-2에서 만든 것을 붙여 넣고 저장합니다.', copy: { label: '인증정보 이름', text: '내 앱스 스크립트 비밀값' } },
+        { text: 'B-2. 편집기에서 새 워크플로우(수동 실행 시작)를 만들고 “구글 앱스 스크립트” 노드를 추가해 잇습니다. 노드 설정을 채웁니다. 웹 앱 주소는 A-5에서 복사한 것, GAS 비밀값은 B-1에서 만든 것을 고릅니다.', copy: { label: '실행할 함수 이름', text: 'main' } },
+        { text: '같은 노드의 “보낼 값(JSON)” 칸에 붙여 넣습니다.', copy: { label: '보낼 값(JSON)', text: '{ "name": "{{input.name}}" }' } },
+        { text: 'B-3. “데이터 변환” 노드를 GAS 노드 뒤에 잇고 결과 모양에 붙여 넣습니다. (GAS가 돌려준 값은 {{input.hello}}, {{input.time}} 으로 읽습니다)', copy: { label: '결과 모양(JSON)', text: '{\n  "message": "{{input.hello}} 님, 앱스 스크립트가 {{input.time}} 에 응답했습니다"\n}' } },
+        { text: 'B-4. 저장 → 실행. 입력값에 아래를 넣습니다. GAS 노드가 초록 체크이고 결과 문장에 “홍길동”이 나오면 성공입니다.', copy: { label: '실행 입력값', text: '{"name": "홍길동"}' } },
+      ],
+      fixes: [
+        '“인증 실패” → A-3의 TOKEN 값과 B-1의 비밀값이 한 글자도 다르면 안 됩니다. 앞뒤 공백도 확인하세요.',
+        '“웹 앱 배포·권한 설정을 확인하세요” → A-4에서 액세스 권한이 “모든 사용자”인지 확인하세요.',
+        'Apps Script 코드를 고쳤다면 “배포 → 배포 관리 → 연필 → 새 버전 → 배포”를 다시 해야 반영됩니다.',
+        '인증정보가 저장되지 않으면 설정 화면에서 “암호화 키”가 준비됐는지 보세요.',
+      ],
+    },
+  ],
 };
 
 // 화면 주소 → 설명서 키. 상세 주소(/groups/g1, /workflows/w1)는 앞부분으로 찾는다.

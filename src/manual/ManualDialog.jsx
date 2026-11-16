@@ -4,7 +4,9 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
-import { MANUALS } from './manuals.js';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckIcon from '@mui/icons-material/Check';
+import { MANUALS, RECIPES } from './manuals.js';
 
 function Shot({ src, alt }) {
   return (
@@ -13,6 +15,78 @@ function Shot({ src, alt }) {
       sx={{ width: '100%', display: 'block', borderRadius: 1.5, border: 1, borderColor: 'divider', mb: 2 }}
     />
   );
+}
+
+// 누르면 클립보드에 복사. 복사가 막힌 환경에서는 글자를 선택해 두어 길게 눌러 복사할 수 있게 한다.
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* 아래 방법으로 */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    const ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+  } catch { return false; }
+}
+
+function CopyBlock({ label, text, code }) {
+  const [state, setState] = useState('idle');
+  const onCopy = async () => {
+    const ok = await copyText(text);
+    setState(ok ? 'done' : 'fail');
+    setTimeout(() => setState('idle'), 2000);
+  };
+  return (
+    <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1.5, overflow: 'hidden', mt: 0.75 }}>
+      <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', px: 1.25, py: 0.5, bgcolor: 'action.hover' }}>
+        <Typography variant="caption" sx={{ fontWeight: 700 }}>{label}</Typography>
+        <Button size="small" onClick={onCopy} startIcon={state === 'done' ? <CheckIcon /> : <ContentCopyIcon />} color={state === 'fail' ? 'error' : 'primary'}>
+          {state === 'done' ? '복사됨' : state === 'fail' ? '복사 안 됨: 직접 선택' : '복사'}
+        </Button>
+      </Stack>
+      <Box component="pre" sx={{ m: 0, p: 1.25, fontSize: 12, lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxHeight: code ? 220 : 'none', overflow: 'auto', userSelect: 'all', fontFamily: 'ui-monospace, Menlo, Consolas, monospace' }}>
+        {text}
+      </Box>
+    </Box>
+  );
+}
+
+// 무작위 비밀값(Apps Script TOKEN 용). 브라우저 안에서만 만들고 어디에도 저장·전송하지 않는다.
+function makeToken() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+function TokenBlock() {
+  const [token, setToken] = useState('');
+  return token ? <CopyBlock label="새로 만든 비밀값 (이 창을 닫으면 사라집니다)" text={token} /> : (
+    <Button size="small" variant="outlined" sx={{ mt: 0.75 }} onClick={() => setToken(makeToken())}>무작위 비밀값 만들기</Button>
+  );
+}
+
+function Recipes({ list }) {
+  return list.map((r) => (
+    <Box key={r.title} sx={{ mb: 3, p: 1.5, border: 1, borderColor: 'primary.light', borderRadius: 2 }}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>{r.title}</Typography>
+      {r.note && <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{r.note}</Typography>}
+      <Stack component="ol" sx={{ m: 0, pl: 2.5, gap: 1.25 }}>
+        {r.steps.map((st, i) => (
+          <Typography component="li" variant="body2" key={i} sx={{ display: 'list-item' }}>
+            {st.text}
+            {st.copy && <CopyBlock {...st.copy} />}
+            {st.token && <TokenBlock />}
+          </Typography>
+        ))}
+      </Stack>
+      {r.fixes && (
+        <Box sx={{ mt: 1.5 }}>
+          <Typography variant="caption" sx={{ fontWeight: 800 }}>막혔을 때</Typography>
+          <Stack component="ul" sx={{ m: 0, pl: 2.5, gap: 0.25 }}>
+            {r.fixes.map((f, i) => (<Typography component="li" variant="caption" key={i}>{f}</Typography>))}
+          </Stack>
+        </Box>
+      )}
+    </Box>
+  ));
 }
 
 function Section({ title, children }) {
@@ -66,6 +140,12 @@ export default function ManualDialog({ open, onClose, startKey = '/' }) {
             <Typography variant="body2">{m.example}</Typography>
           </Box>
         </Section>
+
+        {RECIPES[key] && (
+          <Section title="따라 하기 · 복사해서 붙여 넣기">
+            <Recipes list={RECIPES[key]} />
+          </Section>
+        )}
 
         <Section title="알아두면 좋은 점">
           <Stack component="ul" sx={{ m: 0, pl: 2.5, gap: 0.5 }}>
