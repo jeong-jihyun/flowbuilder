@@ -1,5 +1,5 @@
 // 자동 실행 (9단계): "자동 실행" 켜기·끄기, Webhook 주소, 예약 실행(Schedule).
-// 자동 실행이 켜진(status: 'active') Workflow만 Webhook·예약으로 시작한다.
+// 자동 실행이 켜진(status: 'active') 워크플로우만 웹훅·예약으로 시작한다.
 import { ApiError } from './errors.js';
 import { decrypt, encrypt, randomToken, sha256 } from './crypto.js';
 import { loadWithRole } from './workflows.js';
@@ -108,7 +108,7 @@ export function lastSlot(params, now) {
 // MongoDB 필드 이름에 . 을 쓸 수 없어서 바꿔 쓴다
 const stateKey = (nodeId) => `scheduleState.${nodeId.replace(/\./g, '%2E')}`;
 
-// 자동 실행이 켜진 Workflow의 Schedule 노드 중 시각이 된 것을 실행한다.
+// 자동 실행이 켜진 워크플로우의 Schedule 노드 중 시각이 된 것을 실행한다.
 export async function runSchedules(db, now = Date.now()) {
   const list = await workflows(db)
     .find({ status: 'active', 'nodes.data.kind': 'schedule' })

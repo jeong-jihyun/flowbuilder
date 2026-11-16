@@ -38,7 +38,7 @@ export async function listCredentials(db, userId, groupId) {
   return list.map(view);
 }
 
-// 등록: Owner·Admin
+// 등록: 소유자·관리자
 export async function createCredential(db, userId, input = {}) {
   const groupId = toObjectId(input.groupId);
   await requireGroupAccess(db, groupId, userId, 'manageMembers');
@@ -70,7 +70,7 @@ export async function createCredential(db, userId, input = {}) {
   return view({ ...doc, _id: insertedId });
 }
 
-// 삭제: Owner·Admin. 이 인증정보를 쓰던 노드는 다음 실행에서 실패한다(검증은 화면에서 안내).
+// 삭제: 소유자·관리자. 이 인증정보를 쓰던 노드는 다음 실행에서 실패한다(검증은 화면에서 안내).
 export async function deleteCredential(db, userId, id) {
   const _id = toObjectId(id, 'CREDENTIAL_NOT_FOUND');
   const c = await credentials(db).findOne({ _id }, { projection: { groupId: 1 } });

@@ -3,10 +3,10 @@
 //
 // GET  /api/executions[?workflowId=&status=&before=&limit=]  최신순 목록(기본 20, 최대 50) + 개수 + hasMore (멤버)
 // GET  /api/executions/:id             실행 상태·노드별 결과. 진행 중이면 조금 더 진행시킨 뒤 돌려준다 (멤버)
-// POST /api/executions/:id/cancel      취소 (Owner·Admin·Editor)
-// POST /api/executions/:id/retry       끝난 실행을 같은 입력으로 다시 실행 (Owner·Admin·Editor)
-// DELETE /api/executions/:id           기록 하나 삭제 (Owner·Admin·Editor, 끝난 것만)
-// DELETE /api/executions?olderThanDays=N  N일(7 이상)보다 오래된 끝난 기록 삭제 (Owner·Admin). 사용자가 직접 누를 때만 지운다
+// POST /api/executions/:id/cancel      취소 (소유자·관리자·Editor)
+// POST /api/executions/:id/retry       끝난 실행을 같은 입력으로 다시 실행 (소유자·관리자·Editor)
+// DELETE /api/executions/:id           기록 하나 삭제 (소유자·관리자·Editor, 끝난 것만)
+// DELETE /api/executions?olderThanDays=N  N일(7 이상)보다 오래된 끝난 기록 삭제 (소유자·관리자). 사용자가 직접 누를 때만 지운다
 import { apiHandler, methodNotAllowed } from './_lib/http.js';
 import { ApiError } from './_lib/errors.js';
 import { cancelExecution, retryExecution, deleteExecution, deleteOldExecutions, getExecution, listExecutions } from './_lib/executions.js';

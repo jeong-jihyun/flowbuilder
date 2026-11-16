@@ -24,7 +24,7 @@ export async function runGas(params, ctx, { deadline, getCredential, fetchImpl =
   let token;
   if (params.credentialId) {
     const cred = await getCredential(params.credentialId, 'gasSecret');
-    if (!cred) return { status: 'failed', error: 'GAS 비밀값(인증정보)을 찾을 수 없습니다. Credentials 메뉴를 확인하세요.' };
+    if (!cred) return { status: 'failed', error: 'GAS 비밀값(인증정보)을 찾을 수 없습니다. 인증정보 메뉴를 확인하세요.' };
     token = cred.secret;
   }
 

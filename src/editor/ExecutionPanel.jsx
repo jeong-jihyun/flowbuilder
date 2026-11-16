@@ -98,7 +98,7 @@ export function StepRow({ step, branchLabel, onPick }) {
 }
 
 // 아래쪽 실행 결과 패널 (설계 3.2 하단 "Execution History / Logs / Results").
-// execution: 보고 있는 실행. history: 이 Workflow의 최근 실행 목록(고르면 onSelect).
+// execution: 보고 있는 실행. history: 이 워크플로우의 최근 실행 목록(고르면 onSelect).
 export default function ExecutionPanel({ execution, history, loading, branchLabel, canCancel, onCancel, onSelect, onClose, onPick }) {
   const active = execution && (execution.status === 'running' || execution.status === 'waiting');
   // 실행한 순서대로, 건너뛴 노드는 뒤에
@@ -156,7 +156,7 @@ export default function ExecutionPanel({ execution, history, loading, branchLabe
           </Box>
         ) : !execution ? (
           <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-            아직 실행한 기록이 없습니다. Run을 누르면 저장된 버전으로 실행합니다.
+            아직 실행한 기록이 없습니다. 실행 버튼을 누르면 저장된 버전으로 실행합니다.
           </Typography>
         ) : (
           <>

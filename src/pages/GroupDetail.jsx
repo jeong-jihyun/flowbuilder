@@ -332,7 +332,7 @@ export default function GroupDetail() {
           onClick={() =>
             setConfirm({
               title: '그룹 나가기',
-              text: `"${group.name}" 그룹에서 나갈까요? 다시 들어오려면 Owner나 Admin이 추가해야 합니다.`,
+              text: `"${group.name}" 그룹에서 나갈까요? 다시 들어오려면 소유자나 관리자가 추가해야 합니다.`,
               button: '나가기',
               action: async () => {
                 const r = await run(api(`/groups/${group.id}/members/${myId}`, { method: 'DELETE' }), { reload: false });

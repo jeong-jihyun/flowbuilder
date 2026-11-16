@@ -1,10 +1,10 @@
 // 화면 표시용 역할 이름. 권한 판단은 서버(api/_lib/roles.js)가 하고,
 // 화면은 서버가 돌려준 permissions 로 버튼만 보이거나 숨긴다.
 export const ROLE_LABELS = {
-  owner: 'Owner',
-  admin: 'Admin',
-  editor: 'Editor',
-  viewer: 'Viewer',
+  owner: '소유자',
+  admin: '관리자',
+  editor: '편집자',
+  viewer: '조회자',
 };
 
 export const ROLE_HELP = {

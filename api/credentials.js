@@ -1,8 +1,8 @@
 // 인증정보 API (9단계)
 //
 // GET    /api/credentials[?groupId=]   목록 (멤버, 비밀값 없음)
-// POST   /api/credentials              등록 { groupId, name, type, secret, headerName? } (Owner·Admin)
-// DELETE /api/credentials/:id          삭제 (Owner·Admin)
+// POST   /api/credentials              등록 { groupId, name, type, secret, headerName? } (소유자·관리자)
+// DELETE /api/credentials/:id          삭제 (소유자·관리자)
 import { apiHandler, methodNotAllowed } from './_lib/http.js';
 import { ApiError } from './_lib/errors.js';
 import { createCredential, deleteCredential, listCredentials } from './_lib/credentials.js';

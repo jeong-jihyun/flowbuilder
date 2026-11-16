@@ -20,8 +20,8 @@ function headers(token) {
 function reason(status) {
   if (status === 401) return '토큰이 맞지 않거나 만료됐습니다.';
   if (status === 403) return '토큰에 Actions 실행 권한이 없습니다.';
-  if (status === 404) return '저장소나 Workflow 파일을 찾을 수 없습니다 (토큰 권한도 확인).';
-  if (status === 422) return 'Workflow 파일에 workflow_dispatch 가 없거나, 브랜치·입력값이 맞지 않습니다.';
+  if (status === 404) return '저장소나 워크플로우 파일을 찾을 수 없습니다 (토큰 권한도 확인).';
+  if (status === 422) return '워크플로우 파일에 workflow_dispatch 가 없거나, 브랜치·입력값이 맞지 않습니다.';
   return `GitHub 응답 코드 ${status}`;
 }
 
@@ -36,7 +36,7 @@ function toInputs(raw, ctx) {
 
 export async function runGithubActions(params, ctx, { state = {}, now = Date.now(), getCredential, fetchImpl = fetch } = {}) {
   const cred = await getCredential(params.credentialId, 'githubToken');
-  if (!cred) return { status: 'failed', error: 'GitHub 토큰(인증정보)을 찾을 수 없습니다. Credentials 메뉴를 확인하세요.' };
+  if (!cred) return { status: 'failed', error: 'GitHub 토큰(인증정보)을 찾을 수 없습니다. 인증정보 메뉴를 확인하세요.' };
   const repo = String(resolveString(params.repo, ctx) || '');
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return { status: 'failed', error: '저장소는 owner/repo 모양이어야 합니다.' };
 

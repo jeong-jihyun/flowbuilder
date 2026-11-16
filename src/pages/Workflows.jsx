@@ -23,11 +23,11 @@ import { formatDate } from '../lib/format.js';
 
 // 새로 만들 때 넣어 두는 시작 노드
 const STARTER = {
-  nodes: [{ id: 'trigger_1', type: 'trigger', position: { x: 0, y: 0 }, data: { kind: 'manual', label: 'Manual', params: {} } }],
+  nodes: [{ id: 'trigger_1', type: 'trigger', position: { x: 0, y: 0 }, data: { kind: 'manual', label: '수동 실행', params: {} } }],
   edges: [],
 };
 
-// Workflow 목록 (/workflows): 내가 속한 그룹들의 Workflow
+// 워크플로우 목록 (/workflows): 내가 속한 그룹들의 워크플로우
 export default function Workflows() {
   const api = useApi();
   const navigate = useNavigate();
@@ -63,7 +63,7 @@ export default function Workflows() {
           워크플로우
         </Typography>
         <Alert severity="warning">
-          저장된 Workflow는 로그인이 켜져 있어야 볼 수 있습니다. <RouterLink to="/editor">새 Workflow</RouterLink>는 이 기기에서 그려 볼 수 있습니다.
+          저장된 워크플로우는 로그인이 켜져 있어야 볼 수 있습니다. <RouterLink to="/editor">새 워크플로우</RouterLink>는 이 기기에서 그려 볼 수 있습니다.
         </Alert>
       </Box>
     );
@@ -86,7 +86,7 @@ export default function Workflows() {
           </TextField>
         )}
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)} disabled={!!error}>
-          새 Workflow
+          새 워크플로우
         </Button>
       </Box>
 
@@ -103,9 +103,9 @@ export default function Workflows() {
       ) : shown.length === 0 ? (
         !error && (
           <Paper variant="outlined" sx={{ p: 3, textAlign: 'center' }}>
-            <Typography sx={{ mb: 1 }}>아직 저장된 Workflow가 없습니다.</Typography>
+            <Typography sx={{ mb: 1 }}>아직 저장된 워크플로우가 없습니다.</Typography>
             <Typography variant="body2" color="text.secondary">
-              "새 Workflow"로 만들거나, <RouterLink to="/editor">Workflow Editor</RouterLink>에서 그린 흐름을 Save로 저장하세요.
+              "새 워크플로우"로 만들거나, <RouterLink to="/editor">워크플로우 편집기</RouterLink>에서 그린 흐름을 저장 버튼으로 저장하세요.
             </Typography>
           </Paper>
         )
@@ -126,7 +126,7 @@ export default function Workflows() {
                   primaryTypographyProps={{ fontWeight: 600 }}
                   sx={{ minWidth: 200 }}
                 />
-                <Chip size="small" label={w.status === 'draft' ? 'Draft' : '자동 실행 중'} color={w.status === 'draft' ? 'default' : 'success'} />
+                <Chip size="small" label={w.status === 'draft' ? '초안' : '자동 실행 중'} color={w.status === 'draft' ? 'default' : 'success'} />
                 {!w.permissions.edit && <Chip size="small" variant="outlined" label={`${ROLE_LABELS[w.myRole]} · 보기 전용`} />}
               </ListItemButton>
             ))}
@@ -137,7 +137,7 @@ export default function Workflows() {
       <SaveWorkflowDialog
         open={creating}
         graph={STARTER}
-        title="새 Workflow"
+        title="새 워크플로우"
         onClose={() => setCreating(false)}
         onCreated={(wf) => navigate(`/workflows/${wf.id}`)}
       />

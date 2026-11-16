@@ -40,7 +40,7 @@ export function compare(left, operator, right) {
 }
 
 // state: 이 노드의 지난 기록(Delay·실행기가 다시 불렸을 때 쓰임). now: 현재 시각(ms)
-// getCredential(id, type): 이 Workflow 그룹의 인증정보를 꺼낸다 (9단계)
+// getCredential(id, type): 이 워크플로우 그룹의 인증정보를 꺼낸다 (9단계)
 export async function executeNode(node, input, { state = {}, now = Date.now(), deadline, getCredential } = {}) {
   const params = paramsOf(node);
   const ctx = { input };

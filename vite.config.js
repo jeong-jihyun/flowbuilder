@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  // 설명서 캡처용 demo 모드: 가짜 로그인으로 바꿔 끼운다 (운영 빌드에는 영향 없음)
+  resolve: mode === 'demo' ? { alias: { '@clerk/react': fileURLToPath(new URL('./src/demo/clerkStub.jsx', import.meta.url)) } } : {},
   build: {
     rollupOptions: {
       output: {
@@ -11,9 +14,9 @@ export default defineConfig({
           react: ['react', 'react-dom', 'react-router-dom'],
           mui: ['@mui/material', '@emotion/react', '@emotion/styled'],
           flow: ['@xyflow/react'],
-          clerk: ['@clerk/react'],
+          ...(mode === 'demo' ? {} : { clerk: ['@clerk/react'] }),
         },
       },
     },
   },
-});
+}));

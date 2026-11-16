@@ -50,7 +50,7 @@ async function requireMembership(db, groupId, userId, action) {
   return membership;
 }
 
-// 다른 기능(Workflow 등)에서 쓰는 그룹 권한 확인. 성공하면 내 멤버 기록을 돌려준다.
+// 다른 기능(워크플로우 등)에서 쓰는 그룹 권한 확인. 성공하면 내 멤버 기록을 돌려준다.
 export async function requireGroupAccess(db, groupId, userId, action) {
   return requireMembership(db, groupId, userId, action);
 }
@@ -61,7 +61,7 @@ export async function myRoles(db, userId) {
   return new Map(mine.map((m) => [String(m.groupId), m.role]));
 }
 
-// Owner가 한 명도 안 남게 되는 변경을 막는다.
+// 소유자가 한 명도 안 남게 되는 변경을 막는다.
 async function ensureAnotherOwner(db, groupId) {
   const owners = await members(db).countDocuments({ groupId, role: 'owner' });
   if (owners <= 1) throw new ApiError(409, 'LAST_OWNER');
@@ -86,7 +86,7 @@ export async function listMyGroups(db, userId) {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// 그룹을 만들고 만든 사람을 Owner로 넣는다.
+// 그룹을 만들고 만든 사람을 소유자로 넣는다.
 export async function createGroup(db, me, input = {}) {
   const now = new Date();
   const group = {
@@ -132,7 +132,7 @@ export async function updateGroup(db, userId, id, input = {}) {
   return groupView(group, membership.role);
 }
 
-// 그룹 삭제: Owner만. 멤버 기록, 그룹의 Workflow·실행 기록·인증정보도 함께 지운다.
+// 그룹 삭제: Owner만. 멤버 기록, 그룹의 워크플로우·실행 기록·인증정보도 함께 지운다.
 export async function deleteGroup(db, userId, id) {
   const groupId = toObjectId(id);
   const membership = await requireMembership(db, groupId, userId, 'view');

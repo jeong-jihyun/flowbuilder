@@ -84,19 +84,19 @@ export default function EditorToolbar({
             <SaveIcon />
           </Badge>
         }
-        label={saving ? 'Saving…' : 'Save'}
-        tip={readOnly ? '보기 전용입니다 (Viewer)' : '저장 (Ctrl+S)'}
+        label={saving ? '저장 중…' : '저장'}
+        tip={readOnly ? '보기 전용입니다 (조회자)' : '저장 (Ctrl+S)'}
         onClick={onSave}
         disabled={!onSave || !canSave}
         color={dirty && !readOnly ? 'warning' : undefined}
       />
       {sep}
-      <ToolButton compact={compact} icon={<UndoIcon />} label="Undo" tip="실행 취소 (Ctrl+Z)" onClick={history.undo} disabled={readOnly || !history.canUndo} />
-      <ToolButton compact={compact} icon={<RedoIcon />} label="Redo" tip="다시 실행 (Ctrl+Y)" onClick={history.redo} disabled={readOnly || !history.canRedo} />
-      <ToolButton compact={compact} icon={<DeleteIcon />} label="Delete" tip="선택한 노드·연결선 삭제 (Delete)" onClick={onDelete} disabled={readOnly || !hasSelection} />
-      <ToolButton compact={compact} icon={<FitScreenIcon />} label="Fit" tip="전체 보기" onClick={onFit} />
+      <ToolButton compact={compact} icon={<UndoIcon />} label="되돌리기" tip="실행 취소 (Ctrl+Z)" onClick={history.undo} disabled={readOnly || !history.canUndo} />
+      <ToolButton compact={compact} icon={<RedoIcon />} label="다시하기" tip="다시 실행 (Ctrl+Y)" onClick={history.redo} disabled={readOnly || !history.canRedo} />
+      <ToolButton compact={compact} icon={<DeleteIcon />} label="삭제" tip="선택한 노드·연결선 삭제 (Delete)" onClick={onDelete} disabled={readOnly || !hasSelection} />
+      <ToolButton compact={compact} icon={<FitScreenIcon />} label="전체 보기" tip="전체 보기" onClick={onFit} />
       {onReset && !readOnly && (
-        <ToolButton compact={compact} icon={<RestartAltIcon />} label="Example" tip="예시 흐름으로 되돌리기 (실행 취소 가능)" onClick={onReset} />
+        <ToolButton compact={compact} icon={<RestartAltIcon />} label="예시" tip="예시 흐름으로 되돌리기 (실행 취소 가능)" onClick={onReset} />
       )}
       {sep}
       <ToolButton
@@ -107,20 +107,20 @@ export default function EditorToolbar({
             <RuleIcon />
           </Badge>
         }
-        label="Validate"
+        label="검증"
         tip="흐름 검사: 시작점, 연결, 순환, 필수 설정"
         onClick={onValidate}
       />
       <ToolButton
         compact={compact}
         icon={<PlayArrowIcon />}
-        label="Run"
+        label="실행"
         tip={runTip || '저장된 버전 실행'}
         onClick={onRun}
         disabled={!onRun || !canRun}
         color="success"
       />
-      <ToolButton compact={compact} icon={<PublishIcon />} label="Publish" tip={'게시 기능은 Workflow 위쪽의 "자동 실행" 스위치가 대신합니다'} disabled />
+      <ToolButton compact={compact} icon={<PublishIcon />} label="게시" tip={'게시 기능은 워크플로우 위쪽의 "자동 실행" 스위치가 대신합니다'} disabled />
     </Box>
   );
 }

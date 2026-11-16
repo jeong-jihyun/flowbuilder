@@ -23,7 +23,7 @@ export function permissionsOf(role) {
 
 // 멤버 관리 권한이 있는 사람이 "누구를 어떤 역할로" 바꿀 수 있는지.
 // - Owner: 모든 역할을 주고 바꿀 수 있다.
-// - Admin: Editor·Viewer만 다룬다. Owner·Admin을 만들거나 건드리지 못한다.
+// - Admin: Editor·Viewer만 다룬다. 소유자·관리자을 만들거나 건드리지 못한다.
 // targetRole 은 대상의 지금 역할(새로 추가할 때는 null), newRole 은 바꿀 역할(내보낼 때는 null).
 export function canAssign(actorRole, targetRole, newRole) {
   if (actorRole === 'owner') return true;

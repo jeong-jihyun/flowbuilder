@@ -1,5 +1,5 @@
 // 실행 엔진 (Execution Orchestrator, 8단계). 설계 7.1 흐름을 따른다:
-// 요청 → 인증 → 그룹 권한 → Workflow 조회 → 검증 → Execution 생성 → 노드 실행 → 결과 저장 → 완료/실패
+// 요청 → 인증 → 그룹 권한 → 워크플로우 조회 → 검증 → Execution 생성 → 노드 실행 → 결과 저장 → 완료/실패
 //
 // Vercel 함수는 오래 돌 수 없으므로 한 번에 정해진 시간(budget)만큼만 노드를 처리하고 상태를 저장한다.
 // 남은 일은 다음 요청(화면이 상태를 물어볼 때 등)에서 이어서 한다. Delay처럼 기다리는 노드도 같은 방식.
@@ -178,7 +178,7 @@ export async function launchExecution(db, wf, { input: rawInput, triggerNodeId, 
   const validation = validateWorkflow(wf.nodes, wf.edges);
   if (!validation.ok) throw new ApiError(400, 'VALIDATION_FAILED', `오류 ${validation.errors.length}개`);
 
-  // 시작할 Trigger: 고른 것 → 없으면 Manual → 없으면 첫 Trigger
+  // 시작할 노드: 고른 것 → 없으면 Manual → 없으면 첫 Trigger
   const triggers = wf.nodes.filter((n) => NODE_KIND_INFO[n.data.kind]?.category === 'trigger');
   const trigger =
     triggers.find((n) => n.id === triggerNodeId) || triggers.find((n) => n.data.kind === 'manual') || triggers[0];
@@ -207,7 +207,7 @@ export async function launchExecution(db, wf, { input: rawInput, triggerNodeId, 
     error: null,
     resumeAt: null,
     lockUntil: 0,
-    // 실행 중에 Workflow를 고쳐도 영향 없게 시작할 때의 모습을 복사해 둔다 (끝나면 지움)
+    // 실행 중에 워크플로우를 고쳐도 영향 없게 시작할 때의 모습을 복사해 둔다 (끝나면 지움)
     graph: { nodes: wf.nodes, edges: wf.edges },
     queue: [{ nodeId: trigger.id, input }],
     steps: [],
@@ -217,7 +217,7 @@ export async function launchExecution(db, wf, { input: rawInput, triggerNodeId, 
   return advanceExecution(db, insertedId, budgetMs);
 }
 
-// Run 버튼: 저장된 Workflow를 실행한다. 저장 안 된 화면 내용은 실행하지 않는다.
+// Run 버튼: 저장된 워크플로우를 실행한다. 저장 안 된 화면 내용은 실행하지 않는다.
 export async function startExecution(db, userId, workflowId, body = {}) {
   const { wf, role } = await loadWithRole(db, userId, workflowId, 'view');
   if (!can(role, 'run')) throw new ApiError(403, 'FORBIDDEN');
@@ -307,14 +307,14 @@ export async function listExecutions(db, userId, { workflowId, status, before, l
 }
 
 // 삭제는 사용자가 직접 한다. 시스템이 기록을 자동으로 지우지 않는다.
-// 하나 삭제: Owner·Admin·Editor. 진행 중인 실행은 먼저 취소해야 한다.
+// 하나 삭제: 소유자·관리자·Editor. 진행 중인 실행은 먼저 취소해야 한다.
 export async function deleteExecution(db, userId, id) {
   const ex = await loadExecution(db, userId, id, 'edit');
   if (ACTIVE.includes(ex.status)) throw new ApiError(409, 'EXECUTION_ACTIVE');
   await executions(db).deleteOne({ _id: ex._id, status: { $nin: ACTIVE } });
 }
 
-// N일보다 오래된, 끝난 기록 한꺼번에 삭제: 멤버 관리 권한(Owner·Admin)이 있는 그룹의 것만
+// N일보다 오래된, 끝난 기록 한꺼번에 삭제: 멤버 관리 권한(소유자·관리자)이 있는 그룹의 것만
 export async function deleteOldExecutions(db, userId, { olderThanDays } = {}) {
   const days = Math.floor(Number(olderThanDays));
   if (!Number.isFinite(days) || days < 7) throw new ApiError(400, 'INVALID_DAYS');

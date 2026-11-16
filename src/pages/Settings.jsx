@@ -108,7 +108,7 @@ export default function Settings() {
           </List>
         )}
         <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 1 }}>
-          멤버 추가·역할 변경은 그룹 화면에서 합니다 (Owner·Admin).
+          멤버 추가·역할 변경은 그룹 화면에서 합니다 (소유자·관리자).
         </Typography>
       </Section>
 

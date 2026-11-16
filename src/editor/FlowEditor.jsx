@@ -27,20 +27,20 @@ import { ValidationContext, issuesByNode } from './validationContext.js';
 import { RunStatusContext } from './runContext.js';
 import { validateWorkflow } from '../../shared/validator.js';
 import { useHistory } from './useHistory.js';
-import { CATEGORIES, createNode, outputLabel, outputsOf } from './nodeCatalog.js';
+import { CATEGORIES, createNode, localizeNode, outputLabel, outputsOf } from './nodeCatalog.js';
 import { graphKey, toSavedGraph } from './graph.js';
 
-// Workflow 편집기 본체. "새 Workflow"(/editor)와 "저장된 Workflow"(/workflows/:id)가 같이 쓴다.
+// 워크플로우 편집기 본체. "새 워크플로우"(/editor)와 "저장된 워크플로우"(/workflows/:id)가 같이 쓴다.
 // 중요: 여기는 흐름을 "그리는" 곳이다. 노드를 놓아도 아무것도 실행되지 않는다.
 // 실행은 서버의 실행 엔진(8단계)이 맡는다.
 //
 // props
 //   initial        처음 그릴 { nodes, edges } (처음 한 번만 읽는다)
 //   header         위쪽 제목 영역
-//   readOnly       보기 전용 (Viewer)
+//   readOnly       보기 전용 (조회자)
 //   onChange       바뀔 때마다 (nodes, edges) — 임시 저장용
 //   onSave         저장 버튼·Ctrl+S. 저장용 { nodes, edges } 를 받아 성공하면 true 를 돌려준다
-//   alwaysSavable  바뀐 것이 없어도 저장 버튼을 켠다 (새 Workflow)
+//   alwaysSavable  바뀐 것이 없어도 저장 버튼을 켠다 (새 워크플로우)
 //   resetGraph     "예시로 되돌리기" 버튼에 쓸 흐름 (없으면 버튼 숨김)
 //   onDirtyChange  저장 안 된 변경이 생기거나 없어질 때
 //   onRun          Run 버튼 (8단계). 없거나 runTip 이 있으면 버튼을 끈다
@@ -49,8 +49,8 @@ import { graphKey, toSavedGraph } from './graph.js';
 //   bottomPanel    아래쪽에 붙일 창 (실행 결과). 검증 결과 창과 함께 열리지 않는다
 //   validationRequest  값이 바뀌면 검증 결과 창을 연다 (실행이 검증 오류로 거절됐을 때)
 //   onValidationOpen   검증 결과 창이 열릴 때 (바깥에서 실행 결과 창을 닫게)
-//   credentials    이 Workflow 그룹의 인증정보 목록 (노드 설정에서 고르기, 9단계)
-//   automation     { workflowId, active } 저장된 Workflow일 때만 (Webhook 주소 표시, 9단계)
+//   credentials    이 워크플로우 그룹의 인증정보 목록 (노드 설정에서 고르기, 9단계)
+//   automation     { workflowId, active } 저장된 워크플로우일 때만 (Webhook 주소 표시, 9단계)
 
 const PALETTE_WIDTH = 240;
 const PROPERTIES_WIDTH = 320;
@@ -64,15 +64,15 @@ const EDGE_OPTIONS = { markerEnd: { type: MarkerType.ArrowClosed, width: 18, hei
 // 설계 3.2 그림과 같은 예시 흐름
 export const EXAMPLE = {
   nodes: [
-    { id: 'trigger_1', type: 'trigger', position: { x: 150, y: 0 }, data: { kind: 'manual', label: 'Manual' } },
-    { id: 'condition_1', type: 'condition', position: { x: 150, y: 130 }, data: { kind: 'ifElse', label: 'If / Else', params: { left: '{{input.status}}', operator: 'equals', right: 'done' } } },
-    { id: 'action_1', type: 'action', position: { x: 0, y: 290 }, data: { kind: 'http', label: 'HTTP Request', params: { method: 'GET', url: 'https://api.example.com/items' } } },
-    { id: 'action_2', type: 'action', position: { x: 300, y: 290 }, data: { kind: 'gas', label: 'Google Apps Script', params: { url: 'https://script.google.com/macros/s/EXAMPLE/exec', functionName: 'main' } } },
+    { id: 'trigger_1', type: 'trigger', position: { x: 150, y: 0 }, data: { kind: 'manual', label: '수동 실행' } },
+    { id: 'condition_1', type: 'condition', position: { x: 150, y: 130 }, data: { kind: 'ifElse', label: '조건 분기', params: { left: '{{input.status}}', operator: 'equals', right: 'done' } } },
+    { id: 'action_1', type: 'action', position: { x: 0, y: 290 }, data: { kind: 'http', label: 'HTTP 요청', params: { method: 'GET', url: 'https://api.example.com/items' } } },
+    { id: 'action_2', type: 'action', position: { x: 300, y: 290 }, data: { kind: 'gas', label: '구글 앱스 스크립트', params: { url: 'https://script.google.com/macros/s/EXAMPLE/exec', functionName: 'main' } } },
   ],
   edges: [
     { id: 'edge_1', source: 'trigger_1', target: 'condition_1' },
-    { id: 'edge_2', source: 'condition_1', sourceHandle: 'yes', target: 'action_1', label: 'YES' },
-    { id: 'edge_3', source: 'condition_1', sourceHandle: 'no', target: 'action_2', label: 'NO' },
+    { id: 'edge_2', source: 'condition_1', sourceHandle: 'yes', target: 'action_1', label: '예' },
+    { id: 'edge_3', source: 'condition_1', sourceHandle: 'no', target: 'action_2', label: '아니오' },
   ],
 };
 
@@ -108,6 +108,8 @@ function isTyping(e) {
   return el?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el?.tagName);
 }
 
+const YES_NO = { YES: '예', NO: '아니오' };
+
 function Editor({
   initial,
   header,
@@ -130,8 +132,11 @@ function Editor({
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   // 속성 패널을 옆에 붙일 만큼 넓은 화면 (아니면 아래에서 올라오는 창)
   const isWide = useMediaQuery(theme.breakpoints.up('lg'));
-  const [nodes, setNodes, onNodesChange] = useNodesState(initial.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initial.edges);
+  // 예전에 저장된 YES/NO 연결선 글자도 한글로 보인다 (다음 저장 때 같이 바뀐다)
+  const startEdges = useMemo(() => initial.edges.map((e) => (YES_NO[e.label] ? { ...e, label: YES_NO[e.label] } : e)), [initial.edges]);
+  const startNodes = useMemo(() => initial.nodes.map(localizeNode), [initial.nodes]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(startNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(startEdges);
   const { screenToFlowPosition, deleteElements, fitView, setCenter, getZoom } = useReactFlow();
   const history = useHistory(nodes, edges, setNodes, setEdges);
   const canvasRef = useRef(null);
@@ -162,7 +167,7 @@ function Editor({
   }, [nodes, edges, onChange]);
 
   // 저장 안 된 변경: 마지막으로 저장한(또는 불러온) 모습과 비교한다
-  const [baseline, setBaseline] = useState(() => graphKey(initial.nodes, initial.edges));
+  const [baseline, setBaseline] = useState(() => graphKey(startNodes, startEdges));
   const currentKey = useMemo(() => graphKey(nodes, edges), [nodes, edges]);
   const dirty = currentKey !== baseline;
   const [saving, setSaving] = useState(false);

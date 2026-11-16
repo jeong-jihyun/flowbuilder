@@ -9,7 +9,7 @@ import { useNodeRunStatus } from './runContext.js';
 import { StepIcon } from './ExecutionPanel.jsx';
 
 // 캔버스에 그려지는 노드 한 개.
-// 위쪽 점(들어오는 선)은 Trigger에는 없다. 아래쪽 점(나가는 선)은 노드 종류마다 개수가 다르다.
+// 위쪽 점(들어오는 선)은 시작 노드에는 없다. 아래쪽 점(나가는 선)은 노드 종류마다 개수가 다르다.
 function WorkflowNode({ id, data, selected }) {
   const def = NODE_KINDS[data.kind];
   const node = { id, data };

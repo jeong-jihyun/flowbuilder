@@ -1,5 +1,5 @@
-// Workflow 저장·조회 (6단계). HTTP와 상관없는 처리만 둔다.
-// 권한은 Workflow가 속한 그룹의 역할로 정한다 (설계 8.2: 조회는 모두, 편집은 Editor 이상).
+// 워크플로우 저장·조회 (6단계). HTTP와 상관없는 처리만 둔다.
+// 권한은 워크플로우가 속한 그룹의 역할로 정한다 (설계 8.2: 조회는 모두, 편집은 Editor 이상).
 import { ApiError } from './errors.js';
 import { myRoles, requireGroupAccess, toObjectId } from './groups.js';
 import { can, permissionsOf } from './roles.js';
@@ -112,7 +112,7 @@ function view(wf, role, { full, groupName } = {}) {
   };
 }
 
-// Workflow 하나와 내 역할. 그룹 멤버가 아니면 Workflow가 있다는 사실도 알리지 않는다(404).
+// 워크플로우 하나와 내 역할. 그룹 멤버가 아니면 워크플로우가 있다는 사실도 알리지 않는다(404).
 export async function loadWithRole(db, userId, id, action) {
   const _id = toObjectId(id, 'WORKFLOW_NOT_FOUND');
   const wf = await workflows(db).findOne({ _id });
@@ -123,7 +123,7 @@ export async function loadWithRole(db, userId, id, action) {
   return { wf, role: membership.role };
 }
 
-// 내가 속한 그룹들의 Workflow 목록 (nodes·edges 는 빼고). groupId 를 주면 그 그룹만.
+// 내가 속한 그룹들의 워크플로우 목록 (nodes·edges 는 빼고). groupId 를 주면 그 그룹만.
 export async function listWorkflows(db, userId, groupIdFilter) {
   const roles = await myRoles(db, userId);
   let groupIds = [...roles.keys()];
@@ -200,7 +200,7 @@ export async function updateWorkflow(db, userId, id, input = {}) {
   if (input.nodes !== undefined || input.edges !== undefined) {
     const graph = cleanGraph(input.nodes ?? wf.nodes, input.edges ?? wf.edges);
     Object.assign(changes, graph, { nodeCount: graph.nodes.length });
-    // 자동 실행 중인 Workflow를 검증 오류가 있는 모양으로 저장하면 자동 실행을 끈다 (9단계)
+    // 자동 실행 중인 워크플로우를 검증 오류가 있는 모양으로 저장하면 자동 실행을 끈다 (9단계)
     if (wf.status === 'active' && !validateWorkflow(graph.nodes, graph.edges).ok) changes.status = 'draft';
   }
 

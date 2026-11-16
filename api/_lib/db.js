@@ -12,9 +12,9 @@ async function ensureIndexes(db) {
     db.collection('group_members').createIndex({ groupId: 1, userId: 1 }, { unique: true }),
     // "내 그룹 목록" 조회용
     db.collection('group_members').createIndex({ userId: 1 }),
-    // 그룹별 Workflow 목록(최근 수정 순)
+    // 그룹별 워크플로우 목록(최근 수정 순)
     db.collection('workflows').createIndex({ groupId: 1, updatedAt: -1 }),
-    // Workflow별·그룹별 최근 실행 목록
+    // 워크플로우별·그룹별 최근 실행 목록
     db.collection('executions').createIndex({ workflowId: 1, createdAt: -1 }),
     db.collection('executions').createIndex({ groupId: 1, createdAt: -1 }),
     // 9단계: 인증정보 목록, Webhook 토큰 찾기, 주기 작업이 찾는 실행·예약

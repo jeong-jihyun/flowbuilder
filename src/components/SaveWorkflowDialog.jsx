@@ -13,10 +13,10 @@ import {
 } from '@mui/material';
 import { errorText, useApi } from '../lib/api.js';
 
-// 새 Workflow를 서버에 만드는 창: 이름과 그룹을 고른다.
+// 새 워크플로우를 서버에 만드는 창: 이름과 그룹을 고른다.
 // graph 는 저장할 { nodes, edges }. 성공하면 onCreated(workflow).
-// 편집 권한(Owner·Admin·Editor)이 있는 그룹만 고를 수 있다.
-export default function SaveWorkflowDialog({ open, graph, title = 'Workflow 저장', defaultName = '', onClose, onCreated }) {
+// 편집 권한(소유자·관리자·Editor)이 있는 그룹만 고를 수 있다.
+export default function SaveWorkflowDialog({ open, graph, title = '워크플로우 저장', defaultName = '', onClose, onCreated }) {
   const api = useApi();
   const [groups, setGroups] = useState(null);
   const [groupId, setGroupId] = useState('');
@@ -63,13 +63,13 @@ export default function SaveWorkflowDialog({ open, graph, title = 'Workflow 저�
             <CircularProgress size={24} sx={{ justifySelf: 'center' }} />
           ) : noGroups ? (
             <Alert severity="info">
-              Workflow는 그룹 안에 저장됩니다. 편집할 수 있는 그룹이 없습니다.{' '}
+              워크플로우는 그룹 안에 저장됩니다. 편집할 수 있는 그룹이 없습니다.{' '}
               <RouterLink to="/groups">내 그룹</RouterLink>에서 그룹을 먼저 만들어 주세요.
             </Alert>
           ) : (
             <>
               <TextField
-                label="Workflow 이름"
+                label="워크플로우 이름"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required

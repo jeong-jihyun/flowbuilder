@@ -174,7 +174,7 @@ export default function Credentials() {
         )}
       </Box>
       <Typography color="text.secondary" sx={{ mb: 2 }}>
-        GitHub 토큰·GAS 비밀값·HTTP 인증 헤더를 그룹별로 보관합니다. 비밀값은 암호화되어 저장되고 화면에는 끝 4글자만 보입니다. 등록·삭제는 Owner·Admin만 할 수 있습니다.
+        GitHub 토큰·GAS 비밀값·HTTP 인증 헤더를 그룹별로 보관합니다. 비밀값은 암호화되어 저장되고 화면에는 끝 4글자만 보입니다. 등록·삭제는 소유자·관리자만 할 수 있습니다.
       </Typography>
 
       {error && (
@@ -188,7 +188,7 @@ export default function Credentials() {
           <CircularProgress />
         </Box>
       ) : list && list.length === 0 ? (
-        <Alert severity="info">등록된 인증정보가 없습니다. {canManage ? '"등록"을 눌러 추가하세요.' : '그룹의 Owner·Admin에게 등록을 요청하세요.'}</Alert>
+        <Alert severity="info">등록된 인증정보가 없습니다. {canManage ? '"등록"을 눌러 추가하세요.' : '그룹의 소유자·관리자에게 등록을 요청하세요.'}</Alert>
       ) : (
         list && (
           <Paper variant="outlined">

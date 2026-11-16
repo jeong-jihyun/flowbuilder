@@ -8,24 +8,24 @@ import { paramsOf } from './nodeFields.js';
 const ONE_OUT = [{ id: null, label: '' }];
 
 export const NODE_KIND_INFO = {
-  manual: { category: 'trigger', label: 'Manual', help: '수동 실행', outputs: ONE_OUT },
-  schedule: { category: 'trigger', label: 'Schedule', help: '예약 실행', outputs: ONE_OUT },
-  webhook: { category: 'trigger', label: 'Webhook', help: '외부 요청으로 실행', outputs: ONE_OUT },
+  manual: { category: 'trigger', label: '수동 실행', help: '버튼을 눌러 직접 시작', outputs: ONE_OUT },
+  schedule: { category: 'trigger', label: '예약 실행', help: '정한 시각에 자동 시작', outputs: ONE_OUT },
+  webhook: { category: 'trigger', label: '웹훅', help: '외부 요청이 오면 시작', outputs: ONE_OUT },
   ifElse: {
     category: 'condition',
-    label: 'If / Else',
-    help: '조건 분기',
+    label: '조건 분기',
+    help: '맞으면 예, 아니면 아니오로 나눔',
     outputs: [
-      { id: 'yes', label: 'YES' },
-      { id: 'no', label: 'NO' },
+      { id: 'yes', label: '예' },
+      { id: 'no', label: '아니오' },
     ],
   },
-  switch: { category: 'condition', label: 'Switch', help: '다중 조건 분기', outputs: ONE_OUT },
-  http: { category: 'action', label: 'HTTP Request', help: 'REST API 호출', outputs: ONE_OUT },
-  gas: { category: 'action', label: 'Google Apps Script', help: 'GAS 실행', outputs: ONE_OUT },
-  githubActions: { category: 'action', label: 'GitHub Actions', help: 'GitHub Workflow 실행', outputs: ONE_OUT },
-  transform: { category: 'action', label: 'Data Transform', help: '데이터 변환', outputs: ONE_OUT },
-  delay: { category: 'action', label: 'Delay', help: '지정 시간 대기', outputs: ONE_OUT },
+  switch: { category: 'condition', label: '다중 분기', help: '다중 조건 분기', outputs: ONE_OUT },
+  http: { category: 'action', label: 'HTTP 요청', help: '다른 서비스(API) 호출', outputs: ONE_OUT },
+  gas: { category: 'action', label: '구글 앱스 스크립트', help: 'GAS 함수 실행', outputs: ONE_OUT },
+  githubActions: { category: 'action', label: '깃허브 액션', help: 'GitHub 워크플로우 실행', outputs: ONE_OUT },
+  transform: { category: 'action', label: '데이터 변환', help: '데이터 변환', outputs: ONE_OUT },
+  delay: { category: 'action', label: '대기', help: '정한 시간만큼 기다림', outputs: ONE_OUT },
 };
 
 // 이 노드의 실제 출구 목록
@@ -37,7 +37,7 @@ export function outputsOf(node) {
   return NODE_KIND_INFO[node.data.kind]?.outputs || ONE_OUT;
 }
 
-// 출구 이름(YES/NO 등)을 연결선 글자로 쓴다.
+// 출구 이름(예/아니오 등)을 연결선 글자로 쓴다.
 export function outputLabel(node, handleId) {
   if (!node) return undefined;
   const out = outputsOf(node).find((o) => o.id === (handleId ?? null));

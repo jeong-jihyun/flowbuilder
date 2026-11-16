@@ -70,7 +70,7 @@ function CreateGroupDialog({ open, onClose, onCreated }) {
             inputProps={{ maxLength: 200 }}
           />
           <Typography variant="body2" color="text.secondary">
-            만든 사람이 Owner가 됩니다.
+            만든 사람이 소유자가 됩니다.
           </Typography>
         </DialogContent>
         <DialogActions>

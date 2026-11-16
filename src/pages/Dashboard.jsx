@@ -126,18 +126,18 @@ function WorkflowGroupChart({ workflows }) {
 
   return (
     <Paper variant="outlined" sx={{ p: { xs: 2, md: 2.5 }, height: '100%' }}>
-      <Typography variant="subtitle1" sx={{ fontWeight: 750, color: '#0B2045' }}>그룹별 Workflow</Typography>
-      <Typography variant="caption" color="text.secondary">Workflow가 많은 그룹 상위 5개</Typography>
+      <Typography variant="subtitle1" sx={{ fontWeight: 750, color: '#0B2045' }}>그룹별 워크플로우</Typography>
+      <Typography variant="caption" color="text.secondary">워크플로우가 많은 그룹 상위 5개</Typography>
       {workflows === null ? (
         <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>데이터를 불러오는 중입니다.</Typography>
       ) : groups.length === 0 ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>표시할 Workflow가 없습니다.</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>표시할 워크플로우가 없습니다.</Typography>
       ) : (
         <Stack spacing={1.75} sx={{ mt: 2.5 }}>
           {groups.map(([name, value]) => (
             <Stack key={name} direction="row" alignItems="center" gap={1.25}>
               <Typography variant="body2" color="text.secondary" noWrap title={name} sx={{ width: 112, flexShrink: 0 }}>{name}</Typography>
-              <Box role="progressbar" aria-label={`${name} Workflow 수`} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} sx={{ height: 10, flexGrow: 1, bgcolor: '#F4F7FB', borderRadius: 99, overflow: 'hidden' }}>
+              <Box role="progressbar" aria-label={`${name} 워크플로우 수`} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} sx={{ height: 10, flexGrow: 1, bgcolor: '#F4F7FB', borderRadius: 99, overflow: 'hidden' }}>
                 <Box sx={{ width: `${(value / max) * 100}%`, height: '100%', borderRadius: 99, background: 'linear-gradient(90deg, #2864FF, #00BCD4)' }} />
               </Box>
               <Typography variant="body2" sx={{ width: 24, textAlign: 'right', color: '#0B2045', fontWeight: 750 }}>{value}</Typography>
@@ -151,7 +151,7 @@ function WorkflowGroupChart({ workflows }) {
 
 export default function Dashboard() {
   const api = useApi();
-  // null: 불러오는 중, 배열: 내 Workflow 목록
+  // null: 불러오는 중, 배열: 내 워크플로우 목록
   const [workflows, setWorkflows] = useState(null);
   const [failed, setFailed] = useState(false);
   // 실행 개수 (8단계)
@@ -174,7 +174,7 @@ export default function Dashboard() {
   const columnDefs = useMemo(() => [
     {
       field: 'name',
-      headerName: 'Workflow Name',
+      headerName: '워크플로우 이름',
       minWidth: 180,
       cellRenderer: ({ data }) => (
         <Link component={RouterLink} to={`/workflows/${data.id}`} underline="hover" sx={{ fontWeight: 650 }}>
@@ -182,16 +182,16 @@ export default function Dashboard() {
         </Link>
       ),
     },
-    { field: 'groupName', headerName: 'Group', hide: compact, minWidth: 120 },
+    { field: 'groupName', headerName: '그룹', hide: compact, minWidth: 120 },
     {
       field: 'status',
-      headerName: 'Status',
+      headerName: '상태',
       minWidth: 105,
-      cellRenderer: ({ value }) => <Chip size="small" label={value === 'draft' ? 'Draft' : value} />,
+      cellRenderer: ({ value }) => <Chip size="small" label={value === 'draft' ? '초안' : '자동 실행 중'} />,
     },
     {
       field: 'updatedAt',
-      headerName: 'Updated',
+      headerName: '수정일',
       minWidth: 125,
       valueFormatter: ({ value }) => formatDate(value),
     },
@@ -206,17 +206,17 @@ export default function Dashboard() {
       {AUTH_ENABLED && <ServerAuthCheck />}
       {failed && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          Workflow 목록을 불러오지 못했습니다.
+          워크플로우 목록을 불러오지 못했습니다.
         </Alert>
       )}
 
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, mb: 2 }}>
         <Stat label="워크플로우" value={count} note="내가 속한 그룹 전체" color="#2864FF" tint="#EAF1FF" icon={<AccountTreeOutlinedIcon />} />
         <Stat label="실행 기록" value={runCounts ? runCounts.total : '–'} note="보관 중인 실행 기록" color="#00A6BC" tint="#E5F9FB" icon={<PlayArrowRoundedIcon />} />
-        <Stat label="Failures" value={runCounts ? runCounts.failed : '–'} note="실패한 실행 기록" color="#DC4545" tint="#FFEEEE" icon={<ErrorOutlineRoundedIcon />} />
+        <Stat label="실패" value={runCounts ? runCounts.failed : '–'} note="실패한 실행 기록" color="#DC4545" tint="#FFEEEE" icon={<ErrorOutlineRoundedIcon />} />
       </Box>
 
-      <Typography variant="overline" sx={{ color: '#2864FF', letterSpacing: '.14em', fontWeight: 800 }}>DATA OVERVIEW</Typography>
+      <Typography variant="overline" sx={{ color: '#2864FF', letterSpacing: '.04em', fontWeight: 800 }}>한눈에 보기</Typography>
       <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', lg: '1fr 1fr' }, mb: 3 }}>
         <ExecutionChart counts={runCounts} />
         <WorkflowGroupChart workflows={workflows} />
@@ -228,7 +228,7 @@ export default function Dashboard() {
       {workflows && workflows.length === 0 ? (
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            아직 저장된 Workflow가 없습니다. <Link component={RouterLink} to="/workflows">워크플로우</Link>에서 만들어 보세요.
+            아직 저장된 워크플로우가 없습니다. <Link component={RouterLink} to="/workflows">워크플로우</Link>에서 만들어 보세요.
           </Typography>
         </Paper>
       ) : (

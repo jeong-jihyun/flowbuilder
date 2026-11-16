@@ -49,7 +49,7 @@ function RenameDialog({ open, name, onClose, onSubmit }) {
       >
         <DialogTitle>이름 바꾸기</DialogTitle>
         <DialogContent sx={{ pt: '8px !important' }}>
-          <TextField label="Workflow 이름" fullWidth required autoFocus value={value} onChange={(e) => setValue(e.target.value)} inputProps={{ maxLength: 80 }} />
+          <TextField label="워크플로우 이름" fullWidth required autoFocus value={value} onChange={(e) => setValue(e.target.value)} inputProps={{ maxLength: 80 }} />
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={saving}>
@@ -64,7 +64,7 @@ function RenameDialog({ open, name, onClose, onSubmit }) {
   );
 }
 
-// 저장된 Workflow 편집 (/workflows/:id)
+// 저장된 워크플로우 편집 (/workflows/:id)
 export default function WorkflowDetail() {
   const { id } = useParams();
   const api = useApi();
@@ -116,7 +116,7 @@ export default function WorkflowDetail() {
       setError('');
       const r = await api(`/workflows/${id}`, { method: 'PUT', json: { version: wf.version, ...changes } });
       if (r.ok) {
-        // 자동 실행 중이던 Workflow에 검증 오류가 생기면 서버가 자동 실행을 끈다
+        // 자동 실행 중이던 워크플로우에 검증 오류가 생기면 서버가 자동 실행을 끈다
         if (wf.status === 'active' && r.body.workflow.status !== 'active') {
           setNotice('검증 오류가 있는 모양으로 저장되어 자동 실행이 꺼졌습니다. 오류를 고친 뒤 다시 켜세요.');
         }
@@ -241,7 +241,7 @@ export default function WorkflowDetail() {
       <Box sx={{ p: { xs: 2, md: 3 } }}>
         {back}
         <Alert severity={AUTH_ENABLED ? 'error' : 'warning'} sx={{ mt: 1 }}>
-          {AUTH_ENABLED ? loadError : '저장된 Workflow는 로그인이 켜져 있어야 볼 수 있습니다.'}
+          {AUTH_ENABLED ? loadError : '저장된 워크플로우는 로그인이 켜져 있어야 볼 수 있습니다.'}
         </Alert>
       </Box>
     );
@@ -282,7 +282,7 @@ export default function WorkflowDetail() {
         <Chip size="small" label={wf.groupName || '그룹'} variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />
         <Box sx={{ flexGrow: 1 }} />
         {canEdit && (
-          <Tooltip title="켜면 Webhook·예약(Schedule) 노드가 저장된 내용대로 자동으로 시작합니다">
+          <Tooltip title="켜면 웹훅·예약 노드가 저장된 내용대로 자동으로 시작합니다">
             <FormControlLabel
               sx={{ mr: 0, ml: 0 }}
               control={
@@ -307,8 +307,8 @@ export default function WorkflowDetail() {
           </IconButton>
         </Tooltip>
         {canEdit && (
-          <Tooltip title="Workflow 삭제">
-            <IconButton size="small" onClick={() => setDeleting(true)} aria-label="Workflow 삭제">
+          <Tooltip title="워크플로우 삭제">
+            <IconButton size="small" onClick={() => setDeleting(true)} aria-label="워크플로우 삭제">
               <DeleteOutlineIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -389,7 +389,7 @@ export default function WorkflowDetail() {
         }}
       />
       <Dialog open={deleting} onClose={() => setDeleting(false)} fullWidth maxWidth="xs">
-        <DialogTitle>Workflow 삭제</DialogTitle>
+        <DialogTitle>워크플로우 삭제</DialogTitle>
         <DialogContent>
           <DialogContentText>"{wf.name}"을(를) 지웁니다. 되돌릴 수 없습니다.</DialogContentText>
         </DialogContent>

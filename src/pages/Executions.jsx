@@ -163,7 +163,7 @@ export default function Executions() {
             </Button>
           }
         >
-          30일이 지난 실행 기록이 {counts.old}건 있습니다. 무료 DB 용량을 위해 삭제를 권합니다. (Owner·Admin만 한꺼번에 삭제할 수 있습니다)
+          30일이 지난 실행 기록이 {counts.old}건 있습니다. 무료 DB 용량을 위해 삭제를 권합니다. (소유자·관리자만 한꺼번에 삭제할 수 있습니다)
         </Alert>
       )}
       {notice && (
@@ -182,7 +182,7 @@ export default function Executions() {
           <CircularProgress />
         </Box>
       ) : rows.length === 0 ? (
-        <Alert severity="info">{status ? '이 상태의 실행 기록이 없습니다.' : '아직 실행한 기록이 없습니다. Workflow에서 Run을 눌러 보세요.'}</Alert>
+        <Alert severity="info">{status ? '이 상태의 실행 기록이 없습니다.' : '아직 실행한 기록이 없습니다. 워크플로우에서 실행 버튼을 눌러 보세요.'}</Alert>
       ) : (
         <Paper variant="outlined">
           <List disablePadding>
@@ -254,7 +254,7 @@ export default function Executions() {
           )}
           {detail && (
             <Button component={RouterLink} to={`/workflows/${detail.workflowId}`} size="small" sx={{ mt: 1 }}>
-              Workflow 열기
+              워크플로우 열기
             </Button>
           )}
         </DialogContent>

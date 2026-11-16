@@ -1,13 +1,13 @@
-// Workflow API (6단계): /api/workflows 아래 주소를 모두 이 파일 하나가 받는다.
+// 워크플로우 API (6단계): /api/workflows 아래 주소를 모두 이 파일 하나가 받는다.
 // /api/workflows/... 는 vercel.json 에서 ?path=... 로 바꿔 이 파일로 보낸다.
 //
-// GET    /api/workflows[?groupId=]   내가 속한 그룹의 Workflow 목록 (nodes·edges 제외)
+// GET    /api/workflows[?groupId=]   내가 속한 그룹의 워크플로우 목록 (nodes·edges 제외)
 // POST   /api/workflows              만들기 { groupId, name, description?, nodes?, edges? } (Editor 이상)
 // GET    /api/workflows/:id          하나 불러오기 (멤버)
 // PUT    /api/workflows/:id          저장 { version, name?, description?, nodes?, edges? } (Editor 이상)
 // DELETE /api/workflows/:id          삭제 (Editor 이상)
 // POST   /api/workflows/:id/validate 저장된 버전 검증 (멤버)
-// POST   /api/workflows/:id/run      실행 시작 { input?, triggerNodeId? } (Owner·Admin·Editor, 8단계)
+// POST   /api/workflows/:id/run      실행 시작 { input?, triggerNodeId? } (소유자·관리자·Editor, 8단계)
 // POST   /api/workflows/:id/activate 자동 실행 켜기·끄기 { active } (Editor 이상, 9단계)
 // GET    /api/workflows/:id/webhook?nodeId=   Webhook 주소 보기 (Editor 이상, 9단계)
 // POST   /api/workflows/:id/webhook  Webhook 주소 새로 만들기 { nodeId } (Editor 이상, 9단계)

@@ -18,7 +18,7 @@ export default function WebhookAddress({ workflowId, nodeId, method, active }) {
     if (r.ok) setPath(r.body.path);
     else {
       setPath(null);
-      setError(r.body?.error === 'WEBHOOK_NODE_NOT_FOUND' ? '이 노드는 아직 저장되지 않았습니다. 먼저 Save 한 뒤 주소를 만드세요.' : errorText(r));
+      setError(r.body?.error === 'WEBHOOK_NODE_NOT_FOUND' ? '이 노드는 아직 저장되지 않았습니다. 먼저 저장한 뒤 주소를 만드세요.' : errorText(r));
     }
   }, [api, workflowId, nodeId]);
 
@@ -37,7 +37,7 @@ export default function WebhookAddress({ workflowId, nodeId, method, active }) {
     if (r.ok) {
       setPath(r.body.path);
       setCopied(false);
-    } else setError(r.body?.error === 'WEBHOOK_NODE_NOT_FOUND' ? '이 노드는 아직 저장되지 않았습니다. 먼저 Save 한 뒤 주소를 만드세요.' : errorText(r));
+    } else setError(r.body?.error === 'WEBHOOK_NODE_NOT_FOUND' ? '이 노드는 아직 저장되지 않았습니다. 먼저 저장한 뒤 주소를 만드세요.' : errorText(r));
   }
 
   const url = path ? `${window.location.origin}${path}` : '';
@@ -89,7 +89,7 @@ export default function WebhookAddress({ workflowId, nodeId, method, active }) {
         {path ? '새 주소로 바꾸기' : '주소 만들기'}
       </Button>
       <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 0.5 }}>
-        주소를 아는 사람은 누구나 이 Workflow를 시작할 수 있으니 공개하지 마세요. {active ? '' : '"자동 실행"을 켜기 전에는 요청을 받아도 시작되지 않습니다.'}
+        주소를 아는 사람은 누구나 이 워크플로우를 시작할 수 있으니 공개하지 마세요. {active ? '' : '"자동 실행"을 켜기 전에는 요청을 받아도 시작되지 않습니다.'}
       </Typography>
     </Box>
   );

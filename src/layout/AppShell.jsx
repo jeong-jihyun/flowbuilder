@@ -6,6 +6,7 @@ import {
   Avatar,
   Box,
   Drawer,
+  Button,
   IconButton,
   List,
   ListItemButton,
@@ -28,7 +29,10 @@ import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import { UserButton } from '@clerk/react';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { MENU } from '../menu.js';
+import ManualDialog from '../manual/ManualDialog.jsx';
+import { manualKeyFor } from '../manual/manuals.js';
 import { AUTH_ENABLED } from '../lib/authConfig.js';
 
 const SIDE_WIDTH = 220;
@@ -90,6 +94,8 @@ export default function AppShell({ children }) {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
   const [open, setOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const { pathname } = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -104,10 +110,14 @@ export default function AppShell({ children }) {
           <Box component={RouterLink} to="/" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
             <Box component="img" src="/logo.png" alt="FlowBuilder" sx={{ height: { xs: 28, md: 34 }, width: 'auto', display: 'block' }} />
           </Box>
+          <Button size="small" startIcon={<HelpOutlineIcon />} onClick={() => setManualOpen(true)} sx={{ fontWeight: 700 }}>
+            사용 설명서
+          </Button>
           {/* 로그인한 사용자 사진. 누르면 계정 관리·로그아웃 메뉴가 열린다 */}
           {AUTH_ENABLED ? <UserButton /> : <Avatar sx={{ width: 32, height: 32 }} />}
         </Toolbar>
       </AppBar>
+      <ManualDialog open={manualOpen} onClose={() => setManualOpen(false)} startKey={manualKeyFor(pathname)} />
 
       {!AUTH_ENABLED && (
         <Alert severity="warning" square sx={{ py: 0 }}>

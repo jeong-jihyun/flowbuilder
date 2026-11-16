@@ -84,7 +84,7 @@ export const NODE_FIELDS = {
     summary: (p) => `${p.method} 요청을 받으면 시작`,
   },
   ifElse: {
-    help: '앞 노드의 값은 {{input.이름}} 처럼 씁니다. 맞으면 YES, 아니면 NO로 갑니다.',
+    help: '앞 노드의 값은 {{input.이름}} 처럼 씁니다. 맞으면 예, 아니면 아니오로 갑니다.',
     fields: [
       { key: 'left', label: '비교할 값', type: 'text', default: '', required: true, placeholder: '{{input.status}}' },
       { key: 'operator', label: '조건', type: 'select', default: 'equals', options: OPERATORS },
@@ -110,7 +110,7 @@ export const NODE_FIELDS = {
     summary: (p) => (p.value ? `${p.value} 로 ${p.cases.length + 1}갈래` : ''),
   },
   http: {
-    help: '인증 키가 필요하면 Credentials 메뉴에 "HTTP 인증 헤더"로 등록하고 아래에서 고르세요. 여기에 키를 직접 넣지 마세요.',
+    help: '인증 키가 필요하면 인증정보 메뉴에 "HTTP 인증 헤더"로 등록하고 아래에서 고르세요. 여기에 키를 직접 넣지 마세요.',
     fields: [
       { key: 'method', label: '요청 방식', type: 'select', default: 'GET', options: METHODS },
       {
@@ -148,7 +148,7 @@ export const NODE_FIELDS = {
     summary: (p) => (p.functionName ? `함수 ${p.functionName}` : p.url ? 'Apps Script 웹 앱' : ''),
   },
   githubActions: {
-    help: 'Credentials 메뉴에 "GitHub 토큰"을 등록하고 고르세요. 그 Workflow 파일에 workflow_dispatch 가 있어야 합니다. 끝날 때까지 상태를 확인합니다(최대 6시간).',
+    help: '인증정보 메뉴에 "GitHub 토큰"을 등록하고 고르세요. 그 워크플로우 파일에 workflow_dispatch 가 있어야 합니다. 끝날 때까지 상태를 확인합니다(최대 6시간).',
     fields: [
       {
         key: 'repo',
@@ -159,7 +159,7 @@ export const NODE_FIELDS = {
         placeholder: 'jeong-jihyun/flowbuilder',
         pattern: { re: /^[\w.-]+\/[\w.-]+$/, message: 'owner/repo 모양이어야 합니다' },
       },
-      { key: 'workflow', label: 'Workflow 파일', type: 'text', default: '', required: true, placeholder: 'deploy.yml' },
+      { key: 'workflow', label: '워크플로우 파일', type: 'text', default: '', required: true, placeholder: 'deploy.yml' },
       { key: 'ref', label: '브랜치', type: 'text', default: 'main', required: true },
       { key: 'inputs', label: '입력값 (JSON, 선택)', type: 'json', default: '' },
       { key: 'credentialId', label: 'GitHub 토큰', type: 'credential', credType: 'githubToken', default: '', required: true },

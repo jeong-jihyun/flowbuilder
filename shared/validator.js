@@ -1,4 +1,4 @@
-// Workflow 검증 (7단계). 화면의 Validate 버튼과 서버(/api/workflows/:id/validate, 8단계 실행 전 확인)가 같이 쓴다.
+// 워크플로우 검증 (7단계). 화면의 Validate 버튼과 서버(/api/workflows/:id/validate, 8단계 실행 전 확인)가 같이 쓴다.
 // 결과: { ok, errors: [Issue], warnings: [Issue] }
 // Issue: { level, code, message, nodeId?, edgeId? }
 //   error   — 이대로는 실행할 수 없음 (8단계 Run이 막는다)
@@ -56,7 +56,7 @@ export function validateWorkflow(nodes = [], edges = []) {
   const warn = (code, message, at = {}) => warnings.push({ level: 'warning', code, message, ...at });
 
   if (nodes.length === 0) {
-    error('EMPTY', '노드가 하나도 없습니다. Trigger 노드부터 추가하세요.');
+    error('EMPTY', '노드가 하나도 없습니다. 시작 노드부터 추가하세요.');
     return { ok: false, errors, warnings };
   }
 
@@ -74,7 +74,7 @@ export function validateWorkflow(nodes = [], edges = []) {
   const triggers = known.filter((n) => NODE_KIND_INFO[n.data.kind].category === 'trigger');
   if (triggers.length === 0) error('NO_TRIGGER', 'Trigger 노드가 없습니다. 흐름이 어디서 시작할지 알 수 없습니다.');
   if (triggers.length > 1) {
-    warn('MULTIPLE_TRIGGERS', `Trigger가 ${triggers.length}개입니다. 각 Trigger는 자기 뒤의 흐름만 따로 실행합니다.`);
+    warn('MULTIPLE_TRIGGERS', `시작 노드가 ${triggers.length}개입니다. 각 시작 노드는 자기 뒤의 흐름만 따로 실행합니다.`);
   }
 
   // 3. 노드 이름·설정값
@@ -102,7 +102,7 @@ export function validateWorkflow(nodes = [], edges = []) {
       continue;
     }
     if (NODE_KIND_INFO[target.data?.kind]?.category === 'trigger') {
-      error('INTO_TRIGGER', `${nameOf(target)}: Trigger에는 들어오는 선을 이을 수 없습니다.`, { nodeId: target.id, edgeId: e.id });
+      error('INTO_TRIGGER', `${nameOf(target)}: 시작 노드에는 들어오는 선을 이을 수 없습니다.`, { nodeId: target.id, edgeId: e.id });
     }
     if (NODE_KIND_INFO[source.data?.kind]) {
       const handle = e.sourceHandle ?? null;
@@ -125,7 +125,7 @@ export function validateWorkflow(nodes = [], edges = []) {
     error('CYCLE', `순환 연결이 있습니다: ${names}. 흐름은 한 방향으로만 이어져야 합니다.`, { nodeId: cycle[0] });
   }
 
-  // 6. Trigger에서 닿지 않는 노드는 실행되지 않는다
+  // 6. 시작 노드에서 닿지 않는 노드는 실행되지 않는다
   const reached = new Set();
   const queue = triggers.map((t) => t.id);
   while (queue.length) {
@@ -136,7 +136,7 @@ export function validateWorkflow(nodes = [], edges = []) {
   }
   for (const n of known) {
     if (!reached.has(n.id) && NODE_KIND_INFO[n.data.kind].category !== 'trigger' && triggers.length > 0) {
-      warn('UNREACHABLE', `${nameOf(n)}: Trigger에서 이어지지 않아 실행되지 않습니다.`, { nodeId: n.id });
+      warn('UNREACHABLE', `${nameOf(n)}: 시작 노드에서 이어지지 않아 실행되지 않습니다.`, { nodeId: n.id });
     }
   }
 

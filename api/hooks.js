@@ -1,5 +1,5 @@
 // Webhook 받기 (9단계): POST(또는 노드에서 고른 GET) /api/hooks/<토큰>
-// 로그인 없이 바깥 시스템이 부른다. 토큰이 맞고, Workflow의 "자동 실행"이 켜져 있어야 실행된다.
+// 로그인 없이 바깥 시스템이 부른다. 토큰이 맞고, 워크플로우의 "자동 실행"이 켜져 있어야 실행된다.
 // 응답 202: { ok, executionId, status } — 실행은 서버에서 이어서 진행된다.
 import { getDb } from './_lib/db.js';
 import { pathParts } from './_lib/http.js';

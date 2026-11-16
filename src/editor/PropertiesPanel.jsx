@@ -190,13 +190,13 @@ function FieldInput({ field, value, params, onChange, onBlur, readOnly, credenti
 
 // 오른쪽(휴대폰에서는 아래쪽) 속성 패널. 설계 3.2: Node Name, Parameters, Input, Output, Test Node.
 // onEdit(field, change): 값이 바뀔 때. onEndEdit(): 입력칸에서 빠져나갈 때(실행 취소 묶음 끊기).
-// readOnly: 보기 전용(Viewer). 값은 보이지만 바꿀 수 없다.
+// readOnly: 보기 전용(조회자). 값은 보이지만 바꿀 수 없다.
 export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onClose, readOnly = false, credentials, automation }) {
   if (!node) {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-          Properties
+          속성
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {readOnly ? '노드를 하나 누르면 설정을 볼 수 있습니다.' : '노드를 하나 누르면 이름과 설정을 바꿀 수 있습니다.'}
@@ -247,7 +247,7 @@ export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onC
 
         {fields.length > 0 && (
           <Typography variant="body2" sx={{ fontWeight: 700, mb: 1 }}>
-            Parameters
+            설정값
           </Typography>
         )}
         <Box sx={{ display: 'grid', gap: 0.5 }}>
@@ -274,10 +274,10 @@ export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onC
 
         <Divider sx={{ my: 2 }} />
         <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5 }}>
-          Input · Output · Test Node
+          들어온 값 · 나간 값 · 이 노드만 시험
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          들어온 값·나간 값 보기와 이 노드만 시험 실행하기는 실행 엔진(8단계) 이후에 생깁니다.
+          들어온 값·나간 값 보기와 이 노드만 시험 실행하기는 아직 준비 중입니다.
         </Typography>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
