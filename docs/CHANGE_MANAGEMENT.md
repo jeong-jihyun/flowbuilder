@@ -20,7 +20,7 @@
 | 변경 목적 | 설계 문서 12장 개발 순서의 8단계. 7.1 실행 흐름, 7.2 실행 상태, 2장 Execution Orchestrator·Runner Adapter, 3.2 Run 버튼·하단 실행 결과 |
 | 변경 파일 | 신규: `api/executions.js`, `api/_lib/executions.js`, `api/_lib/engine/executors.js`, `api/_lib/engine/template.js`, `api/_lib/runners/index.js`, `api/_lib/runners/http.js`, `src/editor/ExecutionPanel.jsx`, `src/editor/RunDialog.jsx`, `src/editor/runContext.js` / 수정: `api/workflows.js`(run), `api/_lib/workflows.js`(권한 확인 공개, 삭제 시 실행 기록 삭제), `api/_lib/groups.js`(그룹 삭제 시 실행 기록 삭제), `api/_lib/db.js`(인덱스), `vercel.json`(함수 30초, 다시쓰기), `src/editor/FlowEditor.jsx`, `src/editor/EditorToolbar.jsx`, `src/editor/WorkflowNode.jsx`, `src/pages/WorkflowDetail.jsx`, `src/pages/WorkflowEditor.jsx`, `src/pages/Dashboard.jsx`, `src/lib/api.js`, `package.json`, `package-lock.json`, `README.md`, `docs/*` |
 | 영향 범위 | 저장된 Workflow 화면(Run, 실행 결과 창), Dashboard 실행 수, 새 API `/api/workflows/:id/run`·`/api/executions`, 새 컬렉션 `executions`, Workflow·그룹 삭제(실행 기록도 삭제). HTTP Request 노드가 실제로 바깥에 요청을 보냄 |
-| 배포 상태 | 배포 전 |
+| 배포 상태 | 운영 배포 (2026-11-16) · 커밋 90547d2 · https://flowbuilder-roan.vercel.app |
 | 롤백 방법 | Vercel에서 이전 배포(커밋 30da20e)로 되돌리기, 또는 `git revert`. `executions` 컬렉션은 남지만 이전 버전은 읽지 않으므로 영향 없음 |
 
 설계와 달라진 점 (설계 문서 v1.7에 반영함)
@@ -50,7 +50,12 @@
 | 수행함 | Dashboard 실행 수 1 (거절된 실행은 기록 안 됨) | 통과 |
 | 수행함 | 시험 중 콘솔 오류 0건 | 통과 |
 | 수행 안 함 | 화면에서 취소 버튼 누르기 | 미확인 (서버 취소는 시험함) |
-| 수행 안 함 | 실제 Vercel에서 30초 설정·실제 바깥 주소로 HTTP 요청 | 배포 후 확인 필요 |
+| 수행함 | 배포 주소: `/api/executions` 401(배포 전 없던 주소), `/api/workflows/:id/run` 토큰 없이 401, `/api/health` db ok | 통과 |
+| 수행함 | 실제 환경(사용자 로그인 + MongoDB Atlas): 시험용 Workflow(HTTP 노드 없음)를 그룹 "Group"에 만들고 검증 ok → API로 `{"amount":150}` 실행 201·성공, 큰 주문?→yes, 결과 "큰 주문 150원", 작은 주문 건너뜀, 상태 조회·목록 일치 | 통과 |
+| 수행함 | 실제 환경 화면: 실행 기록 버튼 → 결과 창 "성공"·노드 표시, Run 버튼 → 창에 `{"amount":50}` → NO 갈래 성공, 큰 주문 건너뜀 | 통과 |
+| 수행함 | 시험용 Workflow 삭제 → 그 실행 기록 2개도 삭제(실행 수 2 → 0). 사용자의 기존 Workflow "example"은 그대로 | 통과 |
+| 수행 안 함 | 실제 바깥 주소로 HTTP 요청 | 미확인 (사용자 계정에서 바깥에 요청을 보내지 않으려고 뺌. 서버 시험에서는 가짜 응답으로 확인) |
+| 수행 안 함 | Vercel 함수 30초 설정이 실제로 적용됐는지 | 미확인 (시험한 실행이 모두 1초 안에 끝나 시간 제한에 닿지 않음) |
 | 수행 안 함 | 휴대폰 폭에서 실행 결과 창 | 미확인 |
 
 미완료 항목
