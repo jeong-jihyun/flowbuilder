@@ -45,6 +45,8 @@ function json(obj) {
 
 `docs/examples/gas-hello.workflow.json` — Manual → GAS(`main`) → 결과 문장 변환. 웹 앱 주소(`url`)만 본인 것으로 바꿔 쓰세요. 실행 입력은 `{ "name": "정지현" }`.
 
+GitHub Actions 노드 짝꿍 예제: `docs/examples/github-actions-hello.workflow.json` + `docs/examples/github-actions-dispatch.yml`.
+
 ## 알아 둘 것
 
 - FlowBuilder는 응답을 **15초**까지 기다립니다. 더 오래 걸리는 일은 GitHub Actions 노드를 쓰세요.

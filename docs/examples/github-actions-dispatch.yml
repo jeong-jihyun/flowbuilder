@@ -1,0 +1,16 @@
+# 예제: FlowBuilder의 GitHub Actions 노드가 실행하는 Workflow 파일 견본.
+# 쓰려면 .github/workflows/example-dispatch.yml 로 복사하세요 (복사 전에는 아무것도 실행되지 않습니다).
+# 노드의 토큰(Credentials의 "GitHub 토큰")에는 이 저장소의 Actions 읽기·쓰기 권한이 필요합니다.
+name: example-dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 인사할 이름
+        required: false
+        default: world
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "안녕하세요, ${{ inputs.name }}"

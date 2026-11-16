@@ -1,0 +1,14 @@
+{
+  "name": "GitHub Actions 예제: 인사 실행",
+  "description": "Manual로 시작 → GitHub Actions의 workflow_dispatch 실행(끝날 때까지 대기) → 결과 문장 변환. 짝이 되는 Workflow 파일은 docs/examples/github-actions-dispatch.yml.",
+  "runInput": { "name": "정지현" },
+  "nodes": [
+    { "id": "trigger_1", "type": "trigger", "position": { "x": 150, "y": 0 }, "data": { "kind": "manual", "label": "Manual" } },
+    { "id": "action_1", "type": "action", "position": { "x": 150, "y": 130 }, "data": { "kind": "githubActions", "label": "GitHub 인사", "params": { "repo": "jeong-jihyun/flowbuilder", "workflow": "example-dispatch.yml", "ref": "main", "inputs": "{ \"name\": \"{{input.name}}\" }", "credentialId": "" } } },
+    { "id": "action_2", "type": "action", "position": { "x": 150, "y": 260 }, "data": { "kind": "transform", "label": "결과 문장", "params": { "mapping": "{\n  \"message\": \"GitHub 실행 {{input.conclusion}}: {{input.htmlUrl}}\"\n}" } } }
+  ],
+  "edges": [
+    { "id": "edge_1", "source": "trigger_1", "target": "action_1" },
+    { "id": "edge_2", "source": "action_1", "target": "action_2" }
+  ]
+}
