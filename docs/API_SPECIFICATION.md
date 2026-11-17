@@ -267,7 +267,7 @@ Workflow·그룹 API 변경: Workflow를 지우면 그 실행 기록도, 그룹�
 | GET | `/api/workflows/:id/webhook?nodeId=` | Owner·Admin·Editor | - | 200 `{ path }` (없으면 `null`) |
 | POST | `/api/workflows/:id/webhook` | Owner·Admin·Editor | `{ nodeId }` | 201 `{ path }` 새 주소 (이전 주소는 멈춤) |
 | POST·GET | `/api/hooks/<토큰>` | 로그인 없음 (토큰이 열쇠) | 받은 내용 | 202 `{ ok, executionId, status }` |
-| POST | `/api/cron` | `Authorization: Bearer <CRON_SECRET>` | - | 200 `{ ok, schedules: { started, skipped, failed }, executions, time }` |
+| POST | `/api/cron` | 없음(서버에 `CRON_SECRET`을 넣으면 `Authorization: Bearer <값>` 필요) | - | 200 `{ ok, schedules: { started, skipped, failed }, executions, time }` |
 
 Credential: `{ id, groupId, name, type, headerName?, hint, createdAt }`. `type`은 `githubToken` · `gasSecret` · `httpHeader`. `hint`는 비밀값의 끝 4글자(8글자 이하면 `…`). 그룹당 50개, 이름 50자, 비밀값 4000자까지.
 
@@ -283,7 +283,7 @@ Webhook 규칙
 
 - `activate`로 켤 때 검증(7.3)을 하고 오류가 있으면 400 `VALIDATION_FAILED`. 켠 뒤 검증 오류가 있는 모양으로 저장하면 자동으로 꺼집니다.
 - `/api/cron`은 GitHub Actions(`.github/workflows/flowbuilder-tick.yml`)가 5분마다 부릅니다. 자동 실행이 켜진 Workflow의 Schedule 노드를 확인해 시각이 된 것을 실행하고(같은 시각은 한 번만, 1시간 넘게 늦으면 건너뜀), 기다리는 실행을 최대 15초 진행합니다.
-- `CRON_SECRET`이 서버에 없으면 503 `CRON_NOT_CONFIGURED`, 값이 맞지 않으면 401.
+- `CRON_SECRET`이 서버에 있을 때만 확인하며, 값이 맞지 않으면 401. 없으면 인증 없이 동작한다.
 
 외부 연동 API 오류
 
@@ -295,7 +295,7 @@ Webhook 규칙
 | 405 | `METHOD_NOT_ALLOWED` | Webhook 요청 방식이 노드 설정과 다름 |
 | 409 | `WORKFLOW_INACTIVE` · `TOO_MANY_CREDENTIALS` | 자동 실행이 꺼져 있음 / 그룹당 50개 초과 |
 | 413 | `PAYLOAD_TOO_LARGE` | Webhook 내용이 10,000자 초과 |
-| 503 | `CREDENTIALS_NOT_CONFIGURED` · `CRON_NOT_CONFIGURED` | 서버에 `CREDENTIALS_KEY` / `CRON_SECRET`이 없음 |
+| 503 | `CREDENTIALS_NOT_CONFIGURED` | 서버에 `CREDENTIALS_KEY`가 없음 |
 
 ## 예정 API (아직 없음, 구현할 때 확정)
 

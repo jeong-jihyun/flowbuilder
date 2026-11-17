@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useUser } from '@clerk/react';
-import { Alert, Box, Button, Chip, CircularProgress, Divider, List, ListItem, ListItemText, Paper, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, CircularProgress, Collapse, Divider, List, ListItem, ListItemText, Paper, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import pkg from '../../package.json';
@@ -20,11 +20,33 @@ function Section({ title, children }) {
   );
 }
 
-function StatusRow({ ok, label, help }) {
+// 빠진 항목은 "뭔지 / 없으면 어떻게 되는지 / 누가 어디서 넣는지"를 쉬운 말로 풀어서 보여 준다.
+function StatusRow({ ok, label, what, effect, steps, extra }) {
+  const [open, setOpen] = useState(false);
   return (
     <ListItem disableGutters sx={{ alignItems: 'flex-start' }}>
       {ok ? <CheckCircleIcon color="success" fontSize="small" sx={{ mt: 0.5, mr: 1 }} /> : <ErrorOutlineIcon color="warning" fontSize="small" sx={{ mt: 0.5, mr: 1 }} />}
-      <ListItemText primary={label} secondary={ok ? '설정됨' : help} secondaryTypographyProps={{ color: ok ? 'text.secondary' : 'warning.dark' }} />
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>{label}</Typography>
+        <Typography variant="body2" color="text.secondary">{what}</Typography>
+        {ok ? (
+          <Typography variant="caption" color="success.main">✔ 설정됨</Typography>
+        ) : (
+          <>
+            <Typography variant="body2" color="warning.dark" sx={{ mt: 0.5 }}>아직 설정되지 않았습니다. {effect}</Typography>
+            <Button size="small" onClick={() => setOpen(!open)} sx={{ px: 0 }}>{open ? '접기' : '어떻게 하나요?'}</Button>
+            <Collapse in={open}>
+              <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 0.5 }}>
+                이 설정은 FlowBuilder를 운영하는 사람(관리자)이 한 번만 합니다. 일반 사용자는 하지 않아도 되며, 필요하면 관리자에게 요청하세요.
+              </Typography>
+              <Box component="ol" sx={{ pl: 2.5, my: 0.5, '& li': { mb: 0.5, fontSize: 14 } }}>
+                {steps.map((t, i) => <li key={i}>{t}</li>)}
+              </Box>
+              {extra}
+            </Collapse>
+          </>
+        )}
+      </Box>
     </ListItem>
   );
 }
@@ -117,10 +139,15 @@ export default function Settings() {
           <Alert severity="warning">서버 상태를 가져오지 못했습니다. (내 PC에서는 npx vercel dev 로 실행해야 서버가 있습니다)</Alert>
         ) : (
           <List dense disablePadding>
-            <StatusRow ok={health.db === 'ok'} label="데이터베이스 (MongoDB)" help={health.db === 'not_configured' ? 'MONGODB_URI 가 서버에 없습니다.' : '연결하지 못했습니다. 잠시 뒤 다시 확인하세요.'} />
-            <StatusRow ok={!!health.config?.auth} label="로그인 검증 (Clerk 비밀 키)" help="CLERK_SECRET_KEY 가 서버에 없습니다." />
-            <StatusRow ok={!!health.config?.credentialsKey} label="인증정보 암호화 키" help="CREDENTIALS_KEY(32바이트 base64)가 없거나 길이가 맞지 않습니다. 이 키가 없으면 인증정보 등록이 안 됩니다." />
-            <StatusRow ok={!!health.config?.cronSecret} label="주기 작업 비밀 값" help="CRON_SECRET 이 없습니다. 이 값이 없으면 예약 실행과 기다리는 실행 이어가기가 멈춥니다." />
+            <StatusRow ok={health.db === 'ok'} label="데이터베이스 (MongoDB)" what="워크플로우·그룹·실행 기록이 저장되는 곳입니다."
+              effect={health.db === 'not_configured' ? '이 주소가 없으면 아무것도 저장되지 않습니다.' : '연결이 잠깐 안 됐을 수 있습니다. "다시 확인"을 눌러 보세요.'}
+              steps={['Vercel 대시보드 → flowbuilder 프로젝트 → Settings → Environment Variables 로 갑니다.', '이름 MONGODB_URI, 값에 MongoDB Atlas의 연결 주소(mongodb+srv://…)를 넣고 Save 합니다.', 'Deployments 에서 맨 위 배포의 ⋯ → Redeploy 를 누릅니다.']} />
+            <StatusRow ok={!!health.config?.auth} label="로그인 확인용 키 (Clerk)" what="로그인한 사람이 맞는지 서버가 확인할 때 쓰는 키입니다."
+              effect="이 키가 없으면 로그인한 사람의 요청을 서버가 받아 주지 않습니다."
+              steps={['Clerk 대시보드 → 내 앱 → API keys 에서 Secret keys 를 복사합니다.', 'Vercel → flowbuilder → Settings → Environment Variables 에 이름 CLERK_SECRET_KEY 로 넣고 Save 합니다.', '맨 위 배포를 Redeploy 합니다.']} />
+            <StatusRow ok={!!health.config?.credentialsKey} label="인증정보 암호화 키" what="앱스 스크립트 비밀값·깃허브 토큰을 저장할 때 잠그는 열쇠입니다."
+              effect="이 열쇠가 없으면 인증정보를 등록할 수 없습니다."
+              steps={['터미널에서 openssl rand -base64 32 를 실행해 나온 글자를 복사합니다.', 'Vercel → flowbuilder → Settings → Environment Variables 에 이름 CREDENTIALS_KEY 로 넣고 Save(Sensitive 체크)합니다.', '맨 위 배포를 Redeploy 합니다.']} />
           </List>
         )}
         <Typography variant="caption" color="text.secondary" component="div" sx={{ mt: 1 }}>

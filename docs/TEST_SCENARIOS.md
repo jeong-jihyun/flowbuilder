@@ -11,7 +11,7 @@
 | 준비 | 방법 | 확인 |
 | --- | --- | --- |
 | 계정 2개 | 계정 A(주 사용), 계정 B(권한 시험용). 둘 다 FlowBuilder에 가입 | [ ] |
-| 서버 설정 | Vercel에 `CREDENTIALS_KEY`·`CRON_SECRET`, GitHub Secret `FLOWBUILDER_CRON_SECRET` 등록 후 재배포. 설정 → 시스템에서 4개 모두 "설정됨" | [ ] |
+| 서버 설정 | Vercel에 `CREDENTIALS_KEY` 등록 후 재배포. 설정 → 시스템에서 3개 모두 "설정됨" (주기 작업 비밀값은 불필요) | [ ] |
 | GAS 웹 앱 | `docs/GAS_TEMPLATE.md` 순서로 배포, 주소·TOKEN 준비 | [ ] |
 | GitHub 토큰 | Fine-grained 토큰(Actions 읽기·쓰기), `docs/examples/github-actions-dispatch.yml`을 `.github/workflows/example-dispatch.yml`로 복사해 푸시 | [ ] |
 

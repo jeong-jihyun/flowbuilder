@@ -1,7 +1,7 @@
 // 서버 주기 작업 (9단계): POST /api/cron
 // GitHub Actions(.github/workflows/flowbuilder-tick.yml)가 5분마다 부른다.
 // 1) 시각이 된 예약 실행(Schedule) 시작  2) 아무도 보고 있지 않은 실행(Delay·GitHub 대기 등) 이어서 진행
-// 보호: Authorization: Bearer <CRON_SECRET> (서버 환경변수와 GitHub 저장소 Secret에 같은 값)
+// 비밀값 없이도 동작한다(설정 최소화). 서버에 CRON_SECRET 을 넣으면 그때부터 Authorization: Bearer <값> 을 요구한다(선택).
 import { getDb } from './_lib/db.js';
 import { safeEqual } from './_lib/crypto.js';
 import { runSchedules } from './_lib/automation.js';
@@ -13,10 +13,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'METHOD_NOT_ALLOWED' });
   }
   const secret = process.env.CRON_SECRET;
-  if (!secret) return res.status(503).json({ ok: false, error: 'CRON_NOT_CONFIGURED' });
-  const header = req.headers?.authorization || '';
-  if (!header.startsWith('Bearer ') || !safeEqual(header.slice(7).trim(), secret)) {
-    return res.status(401).json({ ok: false, error: 'UNAUTHENTICATED' });
+  if (secret) {
+    const header = req.headers?.authorization || '';
+    if (!header.startsWith('Bearer ') || !safeEqual(header.slice(7).trim(), secret)) {
+      return res.status(401).json({ ok: false, error: 'UNAUTHENTICATED' });
+    }
   }
 
   let db;
