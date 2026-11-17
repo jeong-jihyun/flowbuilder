@@ -26,6 +26,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { errorText, useApi } from '../lib/api.js';
 import { AUTH_ENABLED } from '../lib/authConfig.js';
 import ConnectDialog from '../components/ConnectDialog.jsx';
+import QuickLinks from '../components/QuickLinks.jsx';
 import { GAS_HOME_URL, GAS_NEW_URL, GITHUB_TOKEN_URL } from '../manual/snippets.js';
 
 // 종류별로 새 값을 만들러 갈 수 있는 링크 (새 탭)
@@ -280,6 +281,8 @@ export default function Credentials() {
       <Typography color="text.secondary" sx={{ mb: 2 }}>
         GitHub 토큰·GAS 비밀값·HTTP 인증 헤더를 그룹별로 보관합니다. 비밀값은 암호화되어 저장되고 화면에는 끝 4글자만 보입니다. 항목을 누르면 이름·비밀값을 수정할 수 있습니다. 등록·수정·삭제는 소유자·관리자만 할 수 있습니다.
       </Typography>
+      {/* 깃허브 액션·GAS 관련 페이지 바로가기 (아이콘, 이름은 마우스를 올리면 표시, 새 창으로 열림) */}
+      <QuickLinks sx={{ mb: 2 }} />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>

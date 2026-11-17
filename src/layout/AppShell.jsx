@@ -31,6 +31,7 @@ import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import { UserButton } from '@clerk/react';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import { MENU } from '../menu.js';
+import QuickLinks from '../components/QuickLinks.jsx';
 import ManualDialog from '../manual/ManualDialog.jsx';
 import { manualKeyFor } from '../manual/manuals.js';
 import { AUTH_ENABLED } from '../lib/authConfig.js';
@@ -110,6 +111,8 @@ export default function AppShell({ children }) {
           <Box component={RouterLink} to="/" sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
             <Box component="img" src="/logo.png" alt="FlowBuilder" sx={{ height: { xs: 28, md: 34 }, width: 'auto', display: 'block' }} />
           </Box>
+          {/* 깃허브 액션·GAS 바로가기: 좁은 화면(폰)에서는 인증정보 화면에 표시 */}
+          <QuickLinks sx={{ display: { xs: 'none', md: 'inline-flex' }, mr: 1 }} />
           <Button size="small" startIcon={<HelpOutlineIcon />} onClick={() => setManualOpen(true)} sx={{ fontWeight: 700 }}>
             사용 설명서
           </Button>
