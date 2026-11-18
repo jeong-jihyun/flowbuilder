@@ -10,6 +10,7 @@ import RuleIcon from '@mui/icons-material/Rule';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PublishIcon from '@mui/icons-material/Publish';
 import AddIcon from '@mui/icons-material/Add';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 
 // 설계 3.2의 상단 Toolbar: Save Undo Redo Validate Run Publish.
 // 아직 만들지 않은 기능은 눌리지 않게 두고, 몇 단계에서 되는지 알려 준다.
@@ -48,6 +49,7 @@ export default function EditorToolbar({
   onFit,
   onReset,
   onAddNode,
+  onExport,
 }) {
   const theme = useTheme();
   const compact = !useMediaQuery(theme.breakpoints.up('md'));
@@ -97,6 +99,15 @@ export default function EditorToolbar({
       <ToolButton compact={compact} icon={<FitScreenIcon />} label="전체 보기" tip="전체 보기" onClick={onFit} />
       {onReset && !readOnly && (
         <ToolButton compact={compact} icon={<RestartAltIcon />} label="예시" tip="예시 흐름으로 되돌리기 (실행 취소 가능)" onClick={onReset} />
+      )}
+      {onExport && (
+        <ToolButton
+          compact={compact}
+          icon={<FileDownloadIcon />}
+          label="내보내기"
+          tip="지금 화면의 흐름을 JSON 파일로 내려받기 (다른 워크플로우로 가져오기 가능)"
+          onClick={onExport}
+        />
       )}
       {sep}
       <ToolButton

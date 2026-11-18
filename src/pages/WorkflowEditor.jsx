@@ -30,6 +30,7 @@ export default function WorkflowEditor() {
         onSave={AUTH_ENABLED ? onSave : undefined}
         alwaysSavable
         resetGraph={EXAMPLE}
+        exportMeta={{ name: '새 워크플로우' }}
         runTip="서버에 저장한 워크플로우만 실행할 수 있습니다. 먼저 저장하세요."
         header={
           <>

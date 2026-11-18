@@ -1,9 +1,10 @@
 # FlowBuilder 통합 설계 문서
 
-v1.9 · 2026-11-17
+v1.10 · 2026-11-18
 
 | 버전 | 바뀐 점 |
 | --- | --- |
+| v1.10 | Workflow JSON 내보내기·가져오기(4.2), 하위 워크플로우 실행 노드 추가(4.1·4.3·4.4) — 업무를 여러 워크플로우로 나누는 방법 |
 | v1.9 | 실행 기록은 `executions`에 두고 자동 삭제하지 않음: 30일 지난 기록은 화면이 알리고 사용자가 직접 삭제(용량 정책) |
 | v1.8 | 외부 연동(7.5): 인증정보 암호화, GAS·GitHub 실행기, Webhook, 자동 실행, 5분 주기 작업 |
 | v1.7 | 실행 방식(7.4): 나눠서 진행, 노드별 동작, 입력값 쓰기, 한도 |
@@ -194,6 +195,7 @@ flowchart TB
 | Action    | GitHub Actions     | GitHub Workflow 실행 |
 | Action    | Data Transform     | 데이터 변환             |
 | Action    | Delay              | 지정 시간 대기           |
+| Action    | 하위 워크플로우 실행      | 같은 그룹의 다른 Workflow를 하위 작업으로 실행 (v1.10) |
 
 노드 출구 (v1.3 추가, 4단계 구현)
 
@@ -205,7 +207,7 @@ flowchart TB
 노드 저장 형태 (v1.3 확정)
 
 * `type`: 분류 (`trigger` / `condition` / `action`) — 6.1 예시와 같음
-* `data.kind`: 노드 종류 (`manual`, `schedule`, `webhook`, `ifElse`, `switch`, `http`, `gas`, `githubActions`, `transform`, `delay`)
+* `data.kind`: 노드 종류 (`manual`, `schedule`, `webhook`, `ifElse`, `switch`, `http`, `gas`, `githubActions`, `transform`, `delay`, `subWorkflow`)
 * `data.label`: 화면에 보이는 노드 이름
 * `data.params`: 노드별 설정 값 (v1.4, 아래 4.3)
 * 연결선의 `sourceHandle`: 어느 출구에서 나왔는지 (`yes`, `no`, `case_1` …, 출구가 하나면 null)
@@ -226,8 +228,19 @@ flowchart TB
 | GitHub Actions | 저장소*(owner/repo), Workflow 파일*, 브랜치*, 입력값(JSON) |
 | Data Transform | 결과 모양*(JSON) |
 | Delay | 시간*(1 이상), 단위(초·분·시간). 최대 24시간 |
+| 하위 워크플로우 실행 | 실행할 워크플로우*(같은 그룹 목록에서 고름), 보낼 입력값(JSON, 비우면 들어온 값 그대로) (v1.10) |
 
 속성 패널은 입력칸마다 바로 검사해 문구를 보여 주고, 문제가 있는 노드에는 "설정 필요 N곳"을 표시합니다. 흐름 전체 검사(연결 누락 등)는 7단계 Validator가 합니다.
+
+### 4.4 하위 워크플로우 실행 (v1.10 추가, 설계 및 구현)
+
+업무를 하나의 큰 Workflow로 다 만들지 않고, 여러 개의 작은 Workflow로 나눠서 만들고 서로 호출하게 하는 기능입니다(업무 분업화). n8n의 "Execute Workflow"와 비슷합니다.
+
+* 노드 설정에서 같은 그룹의 워크플로우 중 하나를 고릅니다. 다른 그룹의 워크플로우는 고를 수 없습니다(6.1: Workflow는 그룹 하나에 속함).
+* 실행 방식: 하위 워크플로우를 처음부터 끝까지 실행하고(별도의 실행 기록은 만들지 않음), 그 결과를 이 노드의 결과로 받아 다음 노드로 이어갑니다. 즉 "기다렸다가 이어가는" 동기 호출입니다.
+* 최대 중첩 깊이는 5단계입니다. 자기 자신을 고르거나(저장 시 바로 막음), 두 워크플로우가 서로를 부르면(실행 중에 발견, A→B→A) 실행이 실패로 멈춥니다.
+* 하위 워크플로우 안에서는 "대기(Delay)" 노드를 쓸 수 없습니다(동기 호출이라 중간에 멈춰 둘 수 없음). 하위 워크플로우에 검증(7단계) 오류가 있으면 실행하지 않습니다.
+* 저장 시점에는 자기 자신 참조만 막습니다. 서로 부르는 순환(A↔B)은 워크플로우를 각각 저장할 때는 알 수 없어 실행할 때 막습니다.
 
 ### 4.2 사용자 제어 범위
 
@@ -250,6 +263,8 @@ flowchart TB
 * 실행 흐름 검증
 
 * Workflow 저장 및 불러오기
+
+* Workflow JSON 내보내기·가져오기 (v1.10): 편집기 위쪽 "내보내기" 버튼으로 지금 화면의 모습을 `{ name, description, nodes, edges }` 모양의 JSON 파일로 내려받습니다. Workflow 목록 화면의 "JSON 가져오기" 버튼으로 그 파일을 다시 올리면(그룹·이름을 고른 뒤) 새 Workflow로 만들어집니다. 다른 그룹·다른 FlowBuilder 계정으로도 옮길 수 있습니다. 저장 API(`POST /api/workflows`)를 그대로 쓰므로, cleanGraph·Validator 검사를 똑같이 거칩니다 — 모양이 안 맞는 파일은 그 자리에서 오류로 거절됩니다.
 
 설계 원칙: React Flow는 편집기 역할을 담당하며 실제 실행 엔진은 별도로 구현합니다. 사용자가 노드를 배치했다고 해서 자동으로 실행되는 구조가 되어서는 안 됩니다.
 

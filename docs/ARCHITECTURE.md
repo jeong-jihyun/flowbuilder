@@ -58,7 +58,7 @@ flowchart LR
 | 저장용 모양 변환·비교 | `src/editor/graph.js` | 구현 |
 | Workflow API | `api/workflows.js`, `api/_lib/workflows.js` | 구현 |
 | API 공통 처리 | `api/_lib/http.js`, `api/_lib/errors.js` | 구현 (groups도 이것을 씀) |
-| 노드 목록(종류·출구) | `src/editor/nodeCatalog.js` | 구현 (설계 4.1의 10종) |
+| 노드 목록(종류·출구) | `src/editor/nodeCatalog.js` | 구현 (설계 4.1의 11종, 하위 워크플로우 실행 포함) |
 | 노드 모양 | `src/editor/WorkflowNode.jsx`, `src/editor/editor.css` | 구현 |
 | Node Palette | `src/editor/NodePalette.jsx` | 구현 (검색, 누르기·끌어 놓기) |
 | 상단 Toolbar | `src/editor/EditorToolbar.jsx` | 구현 (Save·Validate·Run·Publish는 비활성) |
@@ -86,6 +86,7 @@ flowchart LR
 | 실행 엔진 | `api/_lib/executions.js` | 구현 (나눠서 진행, 잠금, 취소, 기록 정리) |
 | 노드별 실행·입력값 바꾸기 | `api/_lib/engine/executors.js`, `api/_lib/engine/template.js` | 구현 |
 | Runner Adapter | `api/_lib/runners/{index,http,gas,github}.js` | HTTP·GAS·GitHub Actions 구현 (내부 주소 막기, GitHub은 상태 확인으로 기다림) |
+| 하위 워크플로우 실행(업무 분업화) | `api/_lib/executions.js`(`runSubWorkflowImpl`), `api/_lib/engine/executors.js`(`subWorkflow` 케이스) | 구현 (v0.16.0, 외부 실행기 아님 — 같은 그룹의 다른 Workflow를 메모리 안에서 동기 실행) |
 | 인증정보 | `api/credentials.js`, `api/_lib/credentials.js`, `api/_lib/crypto.js`, `src/pages/Credentials.jsx` | 구현 (AES-256-GCM, 키는 `CREDENTIALS_KEY`) |
 | Webhook·자동 실행·예약 | `api/hooks.js`, `api/_lib/automation.js`, `api/workflows.js`(activate·webhook), `src/editor/WebhookAddress.jsx` | 구현 |
 | 주기 작업 | `api/cron.js`, `.github/workflows/flowbuilder-tick.yml` | 구현 (GitHub Actions가 5분마다 호출) |
@@ -98,7 +99,7 @@ flowchart LR
 | --- | --- |
 | React 18로 고정 | 설계 문서의 확정 기술 스택 |
 | 편집기 화면만 따로 불러오기(lazy) | React Flow가 무거워서 첫 화면을 가볍게 하려고 |
-| 노드 `type`은 분류, 종류는 `data.kind` | 설계 6.1 예시(`type: "trigger"`)를 지키면서 10종을 구분하려고 |
+| 노드 `type`은 분류, 종류는 `data.kind` | 설계 6.1 예시(`type: "trigger"`)를 지키면서 11종을 구분하려고 |
 | 연결선 모양(꺾은 선·화살표)은 화면 설정으로만 | 저장 데이터를 설계 6.1 모양 그대로 두려고 |
 | 6단계 전까지 브라우저에 임시 저장 | 화면을 옮기거나 새로고침해도 그리던 흐름이 사라지지 않게 |
 | 실행 취소는 "바꾸기 직전 모습"을 쌓는 방식 | 끌기·추가·삭제·연결·재연결 모두 같은 방법으로 되돌리기 위해 |
@@ -121,6 +122,7 @@ flowchart LR
 | 실행할 때 Workflow 복사본 사용 | 실행 중에 편집·저장해도 진행 중인 실행이 바뀌지 않게 |
 | 저장한 버전만 실행, 실행 전 서버 검증 | 화면에만 있는 내용이 실행되거나, 고장 난 흐름이 실행되지 않게 |
 | HTTP 요청 전 주소 확인 + redirect 안 따라감 | 서버를 거쳐 내부망·클라우드 메타데이터를 들여다보는 공격(SSRF) 막기 |
+| 하위 워크플로우: 호출 스택으로 순환 감지 + 최대 5단계, 자기 참조는 저장 시 차단, 대기 노드 금지 | 새 DB 컬렉션·새 실행 기록 없이(메모리 재귀) 안전하게 "업무 분업화"를 지원하려고. 동기 호출이라 Delay로 일시 정지하면 부모 실행 틱이 영원히 막혀서 금지 |
 | 실행 결과 창과 검증 결과 창은 아래쪽 한 자리를 번갈아 씀 | 작은 화면에서 캔버스가 사라지지 않게 |
 | 모바일은 메뉴를 Drawer로 전환 (기준: 화면 폭 900px) | 설계 문서 3.3 모바일 요구 |
 | `vercel.json`에서 `/api/`를 뺀 모든 주소를 `index.html`로 연결 | 새로고침해도 화면이 뜨게 하려고 |

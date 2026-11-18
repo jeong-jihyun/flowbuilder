@@ -125,7 +125,45 @@ function CredentialSelect({ field, value, common, credentials, onChange }) {
   );
 }
 
-function FieldInput({ field, value, params, onChange, onBlur, readOnly, credentials }) {
+// 하위 워크플로우 고르기. 같은 그룹의 워크플로우 중 지금 이 워크플로우(자기 자신)는 뺀다.
+function WorkflowSelect({ field, value, common, workflows, currentWorkflowId, onChange }) {
+  const options = (workflows || []).filter((w) => w.id !== currentWorkflowId);
+  const missing = value && !options.some((w) => w.id === value);
+  return (
+    <TextField
+      select
+      {...common}
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value)}
+      helperText={
+        common.error ? (
+          common.helperText
+        ) : options.length === 0 ? (
+          '먼저 저장한 뒤, 같은 그룹에 다른 워크플로우를 만들어야 고를 수 있습니다.'
+        ) : missing ? (
+          '고른 워크플로우를 찾을 수 없습니다(삭제됐거나 다른 그룹 것). 다시 고르세요.'
+        ) : (
+          ' '
+        )
+      }
+      error={common.error || !!missing}
+    >
+      {!field.required && <MenuItem value="">(사용 안 함)</MenuItem>}
+      {missing && (
+        <MenuItem value={value} disabled>
+          (찾을 수 없음)
+        </MenuItem>
+      )}
+      {options.map((w) => (
+        <MenuItem key={w.id} value={w.id}>
+          {w.name}
+        </MenuItem>
+      ))}
+    </TextField>
+  );
+}
+
+function FieldInput({ field, value, params, onChange, onBlur, readOnly, credentials, workflows, currentWorkflowId }) {
   const error = fieldError(field, value, params);
 
   if (field.type === 'cases') {
@@ -146,6 +184,18 @@ function FieldInput({ field, value, params, onChange, onBlur, readOnly, credenti
 
   if (field.type === 'credential') {
     return <CredentialSelect field={field} value={value} common={common} credentials={credentials} onChange={onChange} />;
+  }
+  if (field.type === 'workflowRef') {
+    return (
+      <WorkflowSelect
+        field={field}
+        value={value}
+        common={common}
+        workflows={workflows}
+        currentWorkflowId={currentWorkflowId}
+        onChange={onChange}
+      />
+    );
   }
   if (field.type === 'select') {
     return (
@@ -191,7 +241,7 @@ function FieldInput({ field, value, params, onChange, onBlur, readOnly, credenti
 // 오른쪽(휴대폰에서는 아래쪽) 속성 패널. 설계 3.2: Node Name, Parameters, Input, Output, Test Node.
 // onEdit(field, change): 값이 바뀔 때. onEndEdit(): 입력칸에서 빠져나갈 때(실행 취소 묶음 끊기).
 // readOnly: 보기 전용(조회자). 값은 보이지만 바꿀 수 없다.
-export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onClose, readOnly = false, credentials, automation }) {
+export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onClose, readOnly = false, credentials, workflows, currentWorkflowId, automation }) {
   if (!node) {
     return (
       <Box sx={{ p: 2 }}>
@@ -261,6 +311,8 @@ export default function PropertiesPanel({ node, onEdit, onEndEdit, onDelete, onC
               onBlur={onEndEdit}
               readOnly={readOnly}
               credentials={credentials}
+              workflows={workflows}
+              currentWorkflowId={currentWorkflowId}
             />
           ))}
         </Box>

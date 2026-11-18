@@ -24,6 +24,87 @@ export const RUN_LIMITS = {
 const ACTIVE = ['running', 'waiting'];
 const executions = (db) => db.collection('executions');
 
+// 하위 워크플로우 실행(설계: "하위 워크플로우 실행" 노드)이 중첩될 수 있는 최대 단계
+const SUB_WORKFLOW_MAX_DEPTH = 5;
+
+// 하위 워크플로우를 메모리에서 통째로 돌려 결과를 돌려준다. 별도의 실행 기록(executions 문서)은 만들지 않는다
+// (DB 용량을 아끼고, 부모 노드가 쓸 수 있는 남은 시간(deadline) 안에서 끝나야 하기 때문).
+// callStack: 지금 실행 중인 워크플로우 id들(문자열) — 자기 자신이나 서로 부르는 순환을 막는다.
+async function runSubWorkflowImpl(db, { groupId, workflowId, input, deadline, getCredential, callStack }) {
+  if (callStack.length >= SUB_WORKFLOW_MAX_DEPTH) {
+    return { status: 'failed', error: `하위 워크플로우 호출이 너무 깊습니다 (최대 ${SUB_WORKFLOW_MAX_DEPTH}단계)` };
+  }
+  let _id;
+  try {
+    _id = toObjectId(workflowId);
+  } catch {
+    return { status: 'failed', error: '하위 워크플로우 주소가 올바르지 않습니다.' };
+  }
+  if (callStack.includes(String(_id))) {
+    return { status: 'failed', error: '순환 호출이 감지되었습니다 (워크플로우가 서로 또는 자기 자신을 부릅니다).' };
+  }
+  // 같은 그룹 안의 워크플로우만 (설계 6.1: Workflow는 그룹 하나에 속한다)
+  const wf = await db.collection('workflows').findOne({ _id, groupId });
+  if (!wf) return { status: 'failed', error: '하위 워크플로우를 찾을 수 없습니다 (삭제됐거나 다른 그룹입니다).' };
+
+  const validation = validateWorkflow(wf.nodes, wf.edges);
+  if (!validation.ok) {
+    return { status: 'failed', error: `하위 워크플로우 "${wf.name}"에 오류가 ${validation.errors.length}개 있어 실행할 수 없습니다.` };
+  }
+
+  const triggers = wf.nodes.filter((n) => NODE_KIND_INFO[n.data.kind]?.category === 'trigger');
+  const trigger = triggers.find((n) => n.data.kind === 'manual') || triggers[0];
+  if (!trigger) return { status: 'failed', error: `하위 워크플로우 "${wf.name}"에 시작 노드가 없습니다.` };
+
+  const nextCallStack = [...callStack, String(_id)];
+  const nodes = new Map(wf.nodes.map((n) => [n.id, n]));
+  const outgoing = new Map();
+  for (const e of wf.edges) {
+    if (!outgoing.has(e.source)) outgoing.set(e.source, []);
+    outgoing.get(e.source).push(e);
+  }
+
+  const queue = [{ nodeId: trigger.id, input }];
+  const done = new Set();
+  let lastOutput = input;
+
+  while (queue.length > 0) {
+    if (Date.now() >= deadline) {
+      return { status: 'failed', error: `하위 워크플로우 "${wf.name}"가 시간 안에 끝나지 않았습니다.` };
+    }
+    const item = queue.shift();
+    const node = nodes.get(item.nodeId);
+    done.add(node.id);
+
+    const runSubWorkflow = (subWorkflowId, subInput) =>
+      runSubWorkflowImpl(db, { groupId, workflowId: subWorkflowId, input: subInput, deadline, getCredential, callStack: nextCallStack });
+
+    let result;
+    try {
+      result = await executeNode(node, item.input, { state: {}, now: Date.now(), deadline, getCredential, runSubWorkflow });
+    } catch (err) {
+      result = { status: 'failed', error: err?.message || String(err) };
+    }
+
+    if (result.status === 'waiting') {
+      return {
+        status: 'failed',
+        error: `하위 워크플로우 "${wf.name}" · "${node.data.label}": 하위 워크플로우 안에서는 "대기" 노드를 쓸 수 없습니다.`,
+      };
+    }
+    if (result.status === 'failed') {
+      return { status: 'failed', error: `하위 워크플로우 "${wf.name}" · "${node.data.label}": ${result.error}` };
+    }
+    lastOutput = result.output;
+    for (const e of outgoing.get(node.id) || []) {
+      if (result.branch !== undefined && (e.sourceHandle ?? null) !== result.branch) continue;
+      if (done.has(e.target) || queue.some((q) => q.nodeId === e.target)) continue;
+      queue.push({ nodeId: e.target, input: result.output });
+    }
+  }
+  return { status: 'success', output: lastOutput };
+}
+
 // 시험에서 시각을 바꿔 끼울 수 있게
 let clock = () => Date.now();
 export function setClock(fn) {
@@ -93,6 +174,9 @@ export async function advanceExecution(db, _id, budgetMs) {
   const queue = ex.queue;
   // 인증정보는 이 실행의 그룹 것만 꺼낼 수 있다
   const getCredential = (id, type) => loadSecret(db, ex.groupId, id, type);
+  // 하위 워크플로우 실행: 지금 이 실행의 워크플로우부터 호출 스택을 시작한다 (자기 자신을 부르면 바로 순환으로 막힘)
+  const runSubWorkflow = (workflowId, input) =>
+    runSubWorkflowImpl(db, { groupId: ex.groupId, workflowId, input, deadline, getCredential, callStack: [String(ex.workflowId)] });
   let status = 'running';
   let error = null;
   let resumeAt = null;
@@ -108,7 +192,7 @@ export async function advanceExecution(db, _id, budgetMs) {
 
     let result;
     try {
-      result = await executeNode(node, item.input, { state: step, now: clock(), deadline, getCredential });
+      result = await executeNode(node, item.input, { state: step, now: clock(), deadline, getCredential, runSubWorkflow });
     } catch (err) {
       result = { status: 'failed', error: err?.message || String(err) };
     }

@@ -26,6 +26,7 @@ export const NODE_KIND_INFO = {
   githubActions: { category: 'action', label: '깃허브 액션', help: 'GitHub 워크플로우 실행', outputs: ONE_OUT },
   transform: { category: 'action', label: '데이터 변환', help: '데이터 변환', outputs: ONE_OUT },
   delay: { category: 'action', label: '대기', help: '정한 시간만큼 기다림', outputs: ONE_OUT },
+  subWorkflow: { category: 'action', label: '하위 워크플로우 실행', help: '다른 워크플로우를 하위 작업으로 실행', outputs: ONE_OUT },
 };
 
 // 이 노드의 실제 출구 목록

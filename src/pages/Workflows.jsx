@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -15,6 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import FileUploadIcon from '@mui/icons-material/FileUpload';
 import { errorText, useApi } from '../lib/api.js';
 import { AUTH_ENABLED } from '../lib/authConfig.js';
 import { ROLE_LABELS } from '../lib/roles.js';
@@ -37,6 +38,10 @@ export default function Workflows() {
   const [group, setGroup] = useState('all');
   const [creating, setCreating] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  // JSON 가져오기: 읽은 파일의 { nodes, edges } 와 이름(그대로 SaveWorkflowDialog에서 그룹을 골라 저장)
+  const [importing, setImporting] = useState(null);
+  const [importError, setImportError] = useState('');
+  const fileInputRef = useRef(null);
 
   const load = useCallback(async () => {
     const r = await api('/workflows');
@@ -50,6 +55,35 @@ export default function Workflows() {
   useEffect(() => {
     if (AUTH_ENABLED) load();
   }, [load]);
+
+  // "JSON 가져오기"로 고른 파일을 읽어서 { nodes, edges } 모양만 가볍게 확인한다.
+  // 자세한 검사(노드 종류·연결 등)는 서버의 cleanGraph·validateWorkflow가 저장할 때 한다.
+  const handleFile = useCallback((e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 같은 파일을 다시 골라도 onChange가 일어나게
+    if (!file) return;
+    setImportError('');
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try {
+        parsed = JSON.parse(reader.result);
+      } catch {
+        setImportError('JSON 파일을 읽을 수 없습니다. 모양이 올바른지 확인하세요.');
+        return;
+      }
+      if (!Array.isArray(parsed?.nodes) || !Array.isArray(parsed?.edges)) {
+        setImportError('이 파일에는 워크플로우의 nodes·edges가 없습니다. FlowBuilder에서 "내보내기"로 만든 파일인지 확인하세요.');
+        return;
+      }
+      setImporting({
+        graph: { nodes: parsed.nodes, edges: parsed.edges },
+        defaultName: typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.slice(0, 80) : file.name.replace(/\.json$/i, ''),
+      });
+    };
+    reader.onerror = () => setImportError('파일을 읽는 중 오류가 났습니다.');
+    reader.readAsText(file);
+  }, []);
 
   // 목록에 나온 그룹으로 거르기
   const groups = useMemo(() => {
@@ -90,6 +124,10 @@ export default function Workflows() {
         <Button variant="outlined" onClick={() => setConnecting(true)} disabled={!!error}>
           연동 추가 (GAS·깃허브 액션)
         </Button>
+        <Button variant="outlined" startIcon={<FileUploadIcon />} onClick={() => fileInputRef.current?.click()} disabled={!!error}>
+          JSON 가져오기
+        </Button>
+        <input ref={fileInputRef} type="file" accept="application/json,.json" hidden onChange={handleFile} />
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreating(true)} disabled={!!error}>
           새 워크플로우
         </Button>
@@ -98,6 +136,11 @@ export default function Workflows() {
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
+        </Alert>
+      )}
+      {importError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setImportError('')}>
+          {importError}
         </Alert>
       )}
 
@@ -152,6 +195,17 @@ export default function Workflows() {
         title="새 워크플로우"
         onClose={() => setCreating(false)}
         onCreated={(wf) => navigate(`/workflows/${wf.id}`)}
+      />
+      <SaveWorkflowDialog
+        open={!!importing}
+        graph={importing?.graph}
+        defaultName={importing?.defaultName}
+        title="워크플로우 가져오기"
+        onClose={() => setImporting(null)}
+        onCreated={(wf) => {
+          setImporting(null);
+          navigate(`/workflows/${wf.id}`);
+        }}
       />
     </Box>
   );

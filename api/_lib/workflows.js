@@ -94,6 +94,18 @@ export function cleanGraph(nodes = [], edges = []) {
   return { nodes: cleanNodes, edges: cleanEdges };
 }
 
+// 하위 워크플로우 노드가 자기 자신(지금 저장하는 이 워크플로우)을 가리키면 저장을 막는다.
+// 서로 다른 워크플로우끼리의 순환(A→B→A)은 저장 시점에는 알 수 없어 실행할 때 막는다(executions.js).
+export function checkNoSelfSubWorkflow(nodes, ownId) {
+  const own = String(ownId);
+  const hit = nodes.find((n) => n.data.kind === 'subWorkflow' && n.data.params?.workflowId === own);
+  if (hit) throw invalid(`${nameOfId(hit.id)}: 하위 워크플로우로 자기 자신을 고를 수 없습니다`);
+}
+
+function nameOfId(id) {
+  return `nodes[${id}]`;
+}
+
 function view(wf, role, { full, groupName } = {}) {
   return {
     id: String(wf._id),
@@ -199,6 +211,7 @@ export async function updateWorkflow(db, userId, id, input = {}) {
   }
   if (input.nodes !== undefined || input.edges !== undefined) {
     const graph = cleanGraph(input.nodes ?? wf.nodes, input.edges ?? wf.edges);
+    checkNoSelfSubWorkflow(graph.nodes, wf._id);
     Object.assign(changes, graph, { nodeCount: graph.nodes.length });
     // 자동 실행 중인 워크플로우를 검증 오류가 있는 모양으로 저장하면 자동 실행을 끈다 (9단계)
     if (wf.status === 'active' && !validateWorkflow(graph.nodes, graph.edges).ok) changes.status = 'draft';

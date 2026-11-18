@@ -18,7 +18,8 @@
 | 실행: Run(입력값·Trigger 선택), 진행 상태·노드별 결과·취소, 실행 기록 (`/api/workflows/:id/run`, `/api/executions`) | |
 | 외부 연동: Credentials(`/api/credentials`), GAS·GitHub Actions 노드, Webhook 주소(`/api/hooks/<토큰>`), 자동 실행·예약, 5분 주기 작업(`/api/cron`) — 설정은 `.env.example` | |
 | Workflow 저장·목록·이름 바꾸기·삭제, 동시 저장 충돌 알림 (`/api/workflows`) | |
-| Workflow 편집기: 노드 10종 추가(목록·끌어 놓기), 연결·재연결, 삭제, 실행 취소, 휴대폰 화면 | |
+| Workflow 편집기: 노드 11종 추가(목록·끌어 놓기, 하위 워크플로우 실행 포함), 연결·재연결, 삭제, 실행 취소, 휴대폰 화면 | |
+| Workflow JSON 내보내기·가져오기(편집기 "내보내기", 목록 "JSON 가져오기") | |
 | Workflow 검증: Validate 버튼, 고칠 때마다 다시 검사, 문제 노드 표시 (`POST /api/workflows/:id/validate`) | |
 | 노드 속성: 이름, 노드별 설정, 입력값 검사, Switch 갈래 추가·삭제 | |
 | `GET /api/health` | |
@@ -98,6 +99,7 @@ flowbuilder/
 
 ## 주요 변경 사항
 
+- 2026-11-18 · v0.16.0 · Workflow JSON 내보내기·가져오기, 하위 워크플로우 실행 노드(업무 분업화)
 - 2026-11-17 · v0.10.1 · 자동 삭제 제거, 사용자가 직접 삭제하도록 변경
 - 2026-11-17 · v0.10.0 · 10단계 실행 기록 화면
 - 2026-11-17 · v0.9.0 · 9단계 외부 연동 (GAS · GitHub Actions · Webhook · 예약 실행)

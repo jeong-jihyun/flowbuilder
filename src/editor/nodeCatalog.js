@@ -9,6 +9,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import TransformIcon from '@mui/icons-material/Transform';
 import HourglassBottomIcon from '@mui/icons-material/HourglassBottom';
+import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import { defaultParams } from '../../shared/nodeFields.js';
 import { NODE_KIND_INFO } from '../../shared/nodeKinds.js';
 
@@ -42,6 +43,7 @@ const ICONS = {
   githubActions: GitHubIcon,
   transform: TransformIcon,
   delay: HourglassBottomIcon,
+  subWorkflow: AccountTreeIcon,
 };
 
 export const NODE_KINDS = Object.fromEntries(

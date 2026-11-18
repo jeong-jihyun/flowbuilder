@@ -11,6 +11,19 @@
 
 ---
 
+## 2026-11-18 · v0.16.0 · Workflow JSON 내보내기·가져오기 + 하위 워크플로우 실행(업무 분업화)
+
+| 항목 | 내용 |
+| --- | --- |
+| 배경 | 사용자가 n8n을 그만두고 FlowBuilder를 쓰기 시작하면서, (1) 업무를 여러 워크플로우로 나눠 하나가 다른 것을 부를 수 있어야 한다, (2) 만든 워크플로우를 JSON으로 내보내고 다시 가져올 수 있어야 한다고 요청. "업무 분업화"의 구체적 모습은 사용자에게 선택지를 물어 "하위 워크플로우 호출"로 확정 |
+| 변경 1 | 새 노드 종류 `subWorkflow`(하위 워크플로우 실행) 추가. 같은 그룹의 다른 워크플로우를 불러 끝날 때까지 기다린 뒤 결과를 다음 노드로 넘긴다. 입력값(JSON, 선택)을 지정하지 않으면 들어온 값을 그대로 전달. 안전장치: 최대 5단계 중첩(`SUB_WORKFLOW_MAX_DEPTH`), 자기 자신 호출은 저장 시 차단(`checkNoSelfSubWorkflow`), 서로 부르는 순환은 실행 중 호출 스택으로 감지해 차단, 대상 워크플로우가 검증(validate)을 통과하지 못하면 실행 실패, 하위 워크플로우 안에서는 "대기"(delay) 노드 사용 불가(동기 호출이라 일시 정지를 둘 수 없음), 대상이 삭제됐거나 다른 그룹 것이면 실패 처리. 기존 실행 엔진(`advanceExecution`)의 틱 기반 큐를 그대로 쓰고 하위 워크플로우 실행 자체는 메모리 안에서 동기로 처리(새 DB 컬렉션 없음) |
+| 변경 2 | Workflow JSON 내보내기: 편집기 툴바에 "내보내기" 버튼 추가, 지금 화면의 nodes·edges를 `{name, description, nodes, edges}` 모양 JSON 파일로 내려받음. 가져오기: 목록 화면에 "JSON 가져오기" 버튼 추가, 파일을 읽어 nodes·edges가 배열인지만 가볍게 확인한 뒤 기존 "새 워크플로우로 저장" 창(`SaveWorkflowDialog`)을 그대로 재사용해 그룹·이름을 고르게 함 → 기존 `POST /api/workflows`를 그대로 타므로 서버의 `cleanGraph`·`validateWorkflow` 검사를 자동으로 통과해야 저장됨. 새 API 엔드포인트는 추가하지 않음 |
+| 파일 | `shared/nodeKinds.js`, `shared/nodeFields.js`, `src/editor/nodeCatalog.js`, `src/editor/PropertiesPanel.jsx`(`WorkflowSelect` 추가), `src/editor/FlowEditor.jsx`, `src/editor/EditorToolbar.jsx`, `src/pages/WorkflowDetail.jsx`, `src/pages/WorkflowEditor.jsx`, `src/pages/Workflows.jsx`, `api/_lib/workflows.js`, `api/_lib/engine/executors.js`, `api/_lib/executions.js`, `package.json`(0.16.0), `package-lock.json`(버전 불일치 0.10.1→0.15.2였던 것도 같이 맞춤), `docs/FLOWBUILDER_DESIGN.md`(§4.1·4.3·4.4), `README.md` |
+| 확인한 것 | `npm run build` 통과(컴파일 오류 없음). 손으로 만든 가짜 MongoDB로 노드/필드 정의, 검증기(필수 `workflowId` 누락 감지), `cleanGraph`가 새 노드 종류를 그대로 받는지, 저장 시 자기 참조 차단, 실행 중 순환·깊이 초과·대상 없음·다른 그룹·검증 실패·대기 노드 포함 차단, 2단계 정상 중첩 성공까지 총 15개 단언(동기 7 + 비동기 8)을 임시 스크립트로 작성해 1회 실행 후 통과 확인, 이후 스크립트는 삭제(이 저장소 관례대로 커밋하지 않음) |
+| **미확인** | 실제 브라우저(Clerk 로그인 상태)에서 "내보내기" 클릭 시 파일 다운로드 동작, "JSON 가져오기"의 실제 파일 선택 UX, 실제 MongoDB Atlas에 연결된 상태에서의 저장·조회, 휴대폰 화면에서 두 버튼의 배치·터치 동작, `WorkflowSelect`(하위 워크플로우 고르는 선택창)가 실제 그룹·여러 워크플로우가 있는 상태에서 보이는 모습 |
+
+---
+
 ## 2026-11-17 · v0.15.2 · 주기 작업 비밀값 없이 동작 + 설정 화면 쉬운 안내
 
 | 항목 | 내용 |

@@ -90,6 +90,8 @@ export default function WorkflowDetail() {
 
   // 자동 실행·인증정보 (9단계)
   const [credentials, setCredentials] = useState([]);
+  // 하위 워크플로우 노드에서 고를 같은 그룹의 워크플로우 목록
+  const [workflows, setWorkflows] = useState([]);
   const [activating, setActivating] = useState(false);
   const [notice, setNotice] = useState('');
 
@@ -103,6 +105,8 @@ export default function WorkflowDetail() {
       setLoadCount((n) => n + 1);
       const c = await api(`/credentials?groupId=${r.body.workflow.groupId}`);
       setCredentials(c.ok ? c.body.credentials : []);
+      const w = await api(`/workflows?groupId=${r.body.workflow.groupId}`);
+      setWorkflows(w.ok ? w.body.workflows : []);
     } else setLoadError(errorText(r));
   }, [api, id]);
 
@@ -353,6 +357,9 @@ export default function WorkflowDetail() {
         runTip={wf.permissions.run ? '' : `보기 전용입니다 (${ROLE_LABELS[wf.myRole]}). 실행 기록은 볼 수 있습니다.`}
         runStatus={runStatus}
         credentials={credentials}
+        workflows={workflows}
+        currentWorkflowId={wf.id}
+        exportMeta={{ name: wf.name, description: wf.description }}
         automation={{ workflowId: wf.id, active: wf.status === 'active' }}
         validationRequest={validationRequest}
         onValidationOpen={() => setPanelOpen(false)}

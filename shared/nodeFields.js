@@ -187,6 +187,20 @@ export const NODE_FIELDS = {
     ],
     summary: (p) => `${p.amount}${label(DELAY_UNITS, p.unit)} 대기`,
   },
+  subWorkflow: {
+    help: '같은 그룹 안의 다른 워크플로우를 하위 작업으로 실행합니다(이 워크플로우가 끝날 때까지 기다린 뒤 다음 노드로 이어집니다). 최대 5단계까지 중첩할 수 있고, 자기 자신을 부르거나 서로를 부르면(순환) 실행이 실패로 멈춥니다. 하위 워크플로우 안에는 "대기" 노드를 쓸 수 없습니다.',
+    fields: [
+      { key: 'workflowId', label: '실행할 워크플로우', type: 'workflowRef', default: '', required: true },
+      {
+        key: 'input',
+        label: '보낼 입력값 (JSON, 선택. 비우면 들어온 값을 그대로 전달)',
+        type: 'json',
+        default: '',
+        placeholder: '{ "name": "{{input.name}}" }',
+      },
+    ],
+    summary: (p) => (p.workflowId ? '하위 워크플로우 실행' : ''),
+  },
 };
 
 function fieldsOf(kind) {

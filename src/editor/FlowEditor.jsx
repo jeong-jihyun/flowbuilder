@@ -51,6 +51,9 @@ import { graphKey, toSavedGraph } from './graph.js';
 //   onValidationOpen   검증 결과 창이 열릴 때 (바깥에서 실행 결과 창을 닫게)
 //   credentials    이 워크플로우 그룹의 인증정보 목록 (노드 설정에서 고르기, 9단계)
 //   automation     { workflowId, active } 저장된 워크플로우일 때만 (Webhook 주소 표시, 9단계)
+//   workflows      이 워크플로우 그룹의 워크플로우 목록 [{id,name}] (하위 워크플로우 노드에서 고르기)
+//   currentWorkflowId  지금 이 워크플로우의 id (하위 워크플로우 목록에서 자기 자신은 뺀다)
+//   exportMeta     { name, description } 있으면 "내보내기" 버튼이 켜진다 (JSON 파일로 다운로드)
 
 const PALETTE_WIDTH = 240;
 const PROPERTIES_WIDTH = 320;
@@ -127,6 +130,9 @@ function Editor({
   onValidationOpen,
   credentials,
   automation,
+  workflows,
+  currentWorkflowId,
+  exportMeta,
 }) {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
@@ -232,6 +238,23 @@ function Editor({
     setSaving(false);
     if (ok) setBaseline(keyAtSave);
   }, [canSave, currentKey, onSave, nodes, edges]);
+
+  // 내보내기: 지금 캔버스 모습을 { name, description, nodes, edges } JSON 파일로 내려받는다.
+  // 저장 안 한 변경도 그대로 내려받는다(실제로 실행되는 저장본과 다를 수 있음에 주의).
+  const doExport = useCallback(() => {
+    if (!exportMeta) return;
+    const graph = toSavedGraph(nodes, edges);
+    const payload = { name: exportMeta.name, description: exportMeta.description || '', ...graph };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(exportMeta.name || '워크플로우').replace(/[\\/:*?"<>|]/g, '_')}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, [exportMeta, nodes, edges]);
 
   const addNode = useCallback(
     (kind, position) => {
@@ -388,6 +411,8 @@ function Editor({
       onDelete={() => deleteElements({ nodes: [selectedNode] })}
       readOnly={readOnly}
       credentials={credentials}
+      workflows={workflows}
+      currentWorkflowId={currentWorkflowId}
       automation={automation}
       onClose={isWide ? undefined : () => setPropertiesOpen(false)}
     />
@@ -416,6 +441,7 @@ function Editor({
         onFit={() => fitView({ duration: 300 })}
         onReset={resetGraph ? resetToExample : undefined}
         onAddNode={() => setPaletteOpen(true)}
+        onExport={exportMeta ? doExport : undefined}
       />
 
       <Box sx={{ display: 'flex', flexGrow: 1, minHeight: 0 }}>

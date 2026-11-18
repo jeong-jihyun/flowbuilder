@@ -41,7 +41,8 @@ export function compare(left, operator, right) {
 
 // state: 이 노드의 지난 기록(Delay·실행기가 다시 불렸을 때 쓰임). now: 현재 시각(ms)
 // getCredential(id, type): 이 워크플로우 그룹의 인증정보를 꺼낸다 (9단계)
-export async function executeNode(node, input, { state = {}, now = Date.now(), deadline, getCredential } = {}) {
+// runSubWorkflow(workflowId, input): 하위 워크플로우 노드가 쓴다. 없으면(사용 안 하는 자리) 그 노드는 실패로 처리한다.
+export async function executeNode(node, input, { state = {}, now = Date.now(), deadline, getCredential, runSubWorkflow } = {}) {
   const params = paramsOf(node);
   const ctx = { input };
 
@@ -87,6 +88,19 @@ export async function executeNode(node, input, { state = {}, now = Date.now(), d
     case 'githubActions':
       // 실행기가 지난번에 남긴 값(예: GitHub 실행 번호)은 step.runner 에 있다
       return runExternal(node.data.kind, params, ctx, { deadline, now, state: state.runner || {}, getCredential });
+
+    case 'subWorkflow': {
+      if (!runSubWorkflow) return { status: 'failed', error: '하위 워크플로우를 실행할 수 없는 자리입니다.' };
+      let subInput = input;
+      if (params.input) {
+        try {
+          subInput = resolveDeep(JSON.parse(params.input), ctx);
+        } catch {
+          return { status: 'failed', error: '보낼 입력값(JSON)을 읽을 수 없습니다.' };
+        }
+      }
+      return runSubWorkflow(params.workflowId, subInput);
+    }
 
     default:
       return { status: 'failed', error: `실행할 수 없는 노드 종류입니다: ${node.data.kind}` };
